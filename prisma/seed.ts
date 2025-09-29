@@ -18,7 +18,7 @@ async function ensureJob(params: { title: string; description: string; requiresD
 async function main() {
   // 1) Marine Superintendent (from the screenshot)
   await ensureJob({
-    title: "Marine Superintendent 1",
+    title: "Marine Superintendent",
     requiresDL: false,
     description: [
       "SeaFarer S.A., a well-established Shipping Company located in Malta, is seeking to employ a Marine Superintendent.",
@@ -38,7 +38,7 @@ async function main() {
 
   // 2) Captain (similar context)
   await ensureJob({
-    title: "Captain 1",
+    title: "Captain",
     requiresDL: false,
     description: [
       "SeaFarer S.A. is looking for an experienced Captain to lead vessel operations and ensure safe, compliant voyages. 1",
