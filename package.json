@@ -1,0 +1,51 @@
+{
+  "name": "eudi-web-recruitment-service-demo",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build --turbopack",
+    "start": "next start",
+    "lint": "eslint",
+    "postinstall": "prisma generate",
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@automapper/core": "^8.8.1",
+    "@automapper/pojos": "^8.8.1",
+    "@emotion/cache": "^11.14.0",
+    "@emotion/server": "^11.11.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.3.2",
+    "@mui/material": "^7.3.2",
+    "@mui/material-nextjs": "^7.3.2",
+    "@prisma/client": "^6.16.0",
+    "cbor-x": "^1.6.0",
+    "dayjs": "^1.11.18",
+    "jks-js": "^1.1.4",
+    "jose": "^6.1.0",
+    "next": "15.5.2",
+    "qrcode": "^1.5.4",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-qr-code": "^2.0.18",
+    "react-toastify": "^11.0.5",
+    "reflect-metadata": "^0.2.2",
+    "swr": "^2.3.6",
+    "typedi": "^0.10.0",
+    "zod": "^4.1.5"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.2",
+    "prisma": "^6.16.0",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
