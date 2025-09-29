@@ -268,10 +268,10 @@ This project is part of the EU Digital Identity Wallet initiative and follows ap
 
 For questions about EUDI wallet integration or technical issues:
 
-1. Check the [Next.js Documentation](https://nextjs.org/docs)
-2. Review [EUDI Wallet specifications](https://digital-strategy.ec.europa.eu/en/policies/eudi-wallet)
+1. Review [EUDI Architecture and Reference Framework](https://eu-digital-identity-wallet.github.io/eudi-doc-architecture-and-reference-framework/2.5.0/architecture-and-reference-framework-main/)
+2. Check the [Next.js Documentation](https://nextjs.org/docs)
 3. Open an issue in this repository
 
 ---
 
-**Built with ❤️ in Hellas for the EU Digital Identity ecosystem**
+**Built with ❤️ for the EU Digital Identity ecosystem**
