@@ -2,31 +2,20 @@
 
 A demonstration of a modern recruitment platform that leverages **EU Digital Identity Wallet (EUDI)** technology for secure candidate verification and credential management.
 
-## 🌟 Overview
+## Overview
 
 This project showcases how traditional recruitment processes can be enhanced with digital identity verification and credential issuance capabilities using European Digital Identity Wallet standards. The platform enables employers to post jobs, candidates to apply using verified digital credentials, and facilitates secure credential verification and issuance.
 
-## ✨ Key Features
+## Key Features
 
-### 🏢 For Employers
-- **Job Management**: Create and manage job postings with detailed descriptions
-- **Application Tracking**: Monitor application status through verification pipeline
-- **Credential Verification**: Verify candidate credentials using EUDI wallet integration
-- **Certificate Issuance**: Issue employment-related credentials to successful candidates
-
-### 👤 For Candidates
 - **Browse Jobs**: View available positions with detailed descriptions
 - **Secure Application**: Apply using verified digital identity credentials
 - **Multi-Device Support**: Same-device and cross-device verification flows
 - **Credential Management**: Receive verifiable employment credentials
+- **Credential Verification**: Verify candidate credentials using EUDI wallet integration
+- **Certificate Issuance**: Issue employment-related credentials to successful candidates
 
-### 🔐 Security & Verification
-- **Digital Identity Integration**: Full EUDI wallet compatibility
-- **QR Code Verification**: Secure cross-device authentication flows
-- **Personal Data Extraction**: Automated extraction from verified credentials
-- **Multi-Step Verification**: Robust application status tracking (CREATED → VERIFIED → ISSUED)
-
-## 🛠 Tech Stack
+## Tech Stack
 
 ### Frontend
 - **Next.js 15** - React framework with App Router
@@ -116,29 +105,92 @@ This project showcases how traditional recruitment processes can be enhanced wit
 
    Open [http://localhost:3000](http://localhost:3000) to view the application.
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 src/
-├── app/                   # Next.js App Router
+├── app/                    # Next.js App Router
 │   ├── api/               # API routes
-│   ├── jobs/              # Job listing pages
-│   ├── applications/      # Application pages
-│   ├── layout.tsx         # Root layout
-│   └── page.tsx           # Homepage (redirects to jobs)
+│   │   └── applications/   # Application-related endpoints
+│   │       ├── create/     # POST: Create new applications
+│   │       ├── verification/[id]/ # GET: Verification status polling
+│   │       ├── qr/[id]/    # GET: Generate QR codes
+│   │       └── [id]/extras/ # POST: Additional credential requests
+│   ├── jobs/              # Job listing and detail pages
+│   ├── applications/      # Application management and status pages
+│   ├── layout.tsx         # Root layout with providers
+│   └── page.tsx           # Homepage (redirects to /jobs)
 ├── components/            # Reusable UI components
-│   ├── atoms/             # Basic components
-│   └── organisms/         # Complex components
-├── server/                # Server-side services and logic
-└── theme.ts               # Material-UI theme configuration
+│   ├── atoms/             # Basic components (buttons, forms, QR codes)
+│   └── organisms/         # Complex components (job cards, application flows)
+├── server/                # Server-side architecture (Clean Architecture + DDD)
+│   ├── services/          # Business Logic Layer
+│   │   ├── ApplicationService.ts  # Main application workflow orchestrator
+│   │   ├── JobService.ts          # Job posting operations
+│   │   ├── VerifierService.ts     # EUDI credential verification
+│   │   ├── IssuerService.ts       # EUDI credential issuance
+│   │   ├── JWTService.ts          # JWT signing with ES256 + certificates
+│   │   ├── DataDecoderService.ts  # CBOR/Base64 decoding utilities
+│   │   └── KeystoreService.ts     # Java keystore (JKS) management
+│   ├── repositories/      # Data Access Layer
+│   │   ├── ApplicationRepository.ts # Application lifecycle management
+│   │   └── JobRepository.ts        # Job CRUD operations
+│   ├── schemas/           # Input Validation (Zod)
+│   │   ├── application.ts  # Application creation, verification schemas
+│   │   └── job.ts         # Job validation schemas
+│   ├── decorators/        # Cross-Cutting Concerns
+│   │   └── validate-input.ts # Method decorator for input validation
+│   ├── types/             # Type Definitions
+│   │   ├── eudi.ts        # EUDI-specific types (VP tokens, DCQL)
+│   │   └── jwt.ts         # JWT payload structures
+│   ├── utils/             # Utility Functions
+│   │   └── dcql-queries.ts # DCQL query builders for credentials
+│   ├── container.ts       # TypeDI dependency injection setup
+│   ├── index.ts          # Service resolution and exports
+│   └── prisma.ts         # Database client singleton
+└── theme.ts              # Material-UI theme configuration
 
 prisma/
-├── schema.prisma          # Database schema definition
+├── schema.prisma         # Database schema (JobPosting, Application models)
+└── migrations/           # Database migration history
 
-development/               # Development utilities and scripts
+development/              # Development utilities and scripts
+
+env.ts                    # Environment variable validation and types
 ```
 
-## 🔄 Application Flow
+### **Server Architecture Details**
+
+The `/server` directory implements a **Clean Architecture** pattern with **Dependency Injection**:
+
+#### **Layer Separation:**
+```
+API Routes → Services (Business Logic) → Repositories (Data Access) → Database (Prisma)
+```
+
+#### **Key Components:**
+
+**Services Layer:**
+- **ApplicationService**: Orchestrates the complete application workflow (creation → verification → issuance)
+- **VerifierService**: EUDI credential verification with DCQL queries and CBOR decoding
+- **IssuerService**: EUDI credential issuance using OpenID4VCI standards
+- **Supporting Services**: JWT signing, data decoding, keystore management
+
+**Data Layer:**
+- **Repositories**: Abstract database operations with Prisma
+- **Schemas**: Zod-based input validation with decorator support
+- **Types**: EUDI-specific type definitions and JWT structures
+
+**State Management:**
+Applications follow a state machine pattern: `CREATED → VERIFIED → ISSUED`
+
+**EUDI Integration:**
+- **Dual Device Flows**: Same-device and cross-device verification
+- **DCQL Queries**: Distributed credential query language support
+- **CBOR Decoding**: Native handling of EUDI's binary data formats
+- **Certificate Management**: Java keystore integration for JWT signing
+
+## Application Flow
 
 1. **Job Discovery**: Candidates browse available job postings
 2. **Application Initiation**: Candidate selects a job and chooses verification method
@@ -147,7 +199,7 @@ development/               # Development utilities and scripts
 5. **Application Processing**: Employer reviews verified application data
 6. **Credential Issuance**: Successful candidates receive employment credentials
 
-## 🧪 Development
+## Development
 
 ### Available Scripts
 
@@ -170,7 +222,7 @@ npx prisma db push   # Push schema changes to database
 - **Prisma**: Type-safe database operations
 - **Zod**: Runtime environment validation
 
-## 🌐 API Integration
+## API Integration
 
 ### EUDI Wallet Integration
 The application integrates with EUDI-compliant verifier and issuer services:
@@ -186,21 +238,21 @@ The application integrates with EUDI-compliant verifier and issuer services:
 - Professional Certifications
 - Employment History
 
-## 📱 Mobile Compatibility
+## Mobile Compatibility
 
 The application is fully responsive and supports mobile devices for:
 - Job browsing and applications
 - QR code scanning for cross-device verification
 - Credential management and viewing
 
-## 🔒 Security Considerations
+## Security Considerations
 
 - **Environment Variables**: Secure configuration management with Zod validation
 - **Credential Verification**: Cryptographic verification of digital credentials
 - **Data Privacy**: Minimal personal data retention, focused on verified attributes
 - **Secure Communication**: HTTPS-only in production environments
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -208,11 +260,11 @@ The application is fully responsive and supports mobile devices for:
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📄 License
+## License
 
 This project is part of the EU Digital Identity Wallet initiative and follows applicable EU regulations and standards.
 
-## 🆘 Support
+## Support
 
 For questions about EUDI wallet integration or technical issues:
 
@@ -222,4 +274,4 @@ For questions about EUDI wallet integration or technical issues:
 
 ---
 
-**Built with ❤️ for the EU Digital Identity ecosystem**
+**Built with ❤️ in Hellas for the EU Digital Identity ecosystem**
