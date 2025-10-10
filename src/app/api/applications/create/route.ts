@@ -1,20 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { applicationService } from "@/server";
-import { z } from "zod";
-
-const BodySchema = z.object({
-  jobId: z.string().min(1),
-  sameDevice: z.boolean().default(false),
-});
+import { Container } from "@/server";
+import { ApplicationService } from "@/server/services/ApplicationService";
 
 export async function POST(req: NextRequest) {
   try {
+    const applicationService = Container.get(ApplicationService);
     const json = await req.json().catch(() => ({}));
-    const body = BodySchema.parse(json);
 
+    // Initial application always uses PID (Personal ID) verification
     const res = await applicationService.create({
-      jobId: body.jobId,
-      sameDeviceFlow: body.sameDevice,
+      jobId: json.jobId,
+      sameDeviceFlow: json.sameDevice ?? false,
     });
 
     // { url, applicationId? }

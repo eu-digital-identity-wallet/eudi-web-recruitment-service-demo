@@ -15,6 +15,7 @@ export type VerificationData = {
 export interface VerificationResponse {
   status: boolean;
   personalInfo?: VerificationData;
+  verifiedCredentials?: Record<string, Record<string, unknown>>; // namespace -> claims
 }
 
 export type VpTokenRequest = {
@@ -24,11 +25,12 @@ export type VpTokenRequest = {
       id: string;
       format: string;
       meta: {
-        doctype_value: string;
+        doctype_value?: string;
+        vct_values?: string[];
       };
-      claims: {
+      claims?: {
         path: string[];
-        intent_to_retain: boolean;
+        intent_to_retain?: boolean;
       }[];
     }[];
   };

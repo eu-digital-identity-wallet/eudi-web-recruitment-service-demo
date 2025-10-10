@@ -14,10 +14,19 @@ enum ApplicationStatus {
   ISSUED
 }
 
+enum CredentialType {
+  NONE
+  PID
+  DIPLOMA
+  SEAFARER
+  BOTH
+}
+
 model JobPosting {
   id           String        @id @default(cuid())
   title        String
   description  String
+  requiredCredentials CredentialType @default(NONE)
   createdAt    DateTime      @default(now())
   applications Application[]
 }
@@ -29,24 +38,67 @@ model Application {
   job          JobPosting @relation(fields: [jobId], references: [id])
 
   status       ApplicationStatus @default(CREATED)
-  
-  verifierTransactionId String?  @unique
-  verifierRequestUri     String?
-  sameDeviceFlow        Boolean?
 
-  // Extracted from verified credentials
+  // Extracted from verified PID credential (for employee credential issuance)
   candidateFamilyName   String?
   candidateGivenName    String?
   candidateDateOfBirth  String?
   candidateNationality  String?
   candidateEmail        String?
   candidateMobilePhone  String?
-  
-  // Issuance
-  credentialOfferUrl    String?
+
+  // Relations
+  issuedCredentials     IssuedCredential[]
+  verifiedCredentials   VerifiedCredential[]
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   @@index([jobId])
+}
+
+// Stores credentials ready to be issued to wallets
+model IssuedCredential {
+  id                    String   @id @default(cuid())
+  applicationId         String
+  application           Application @relation(fields: [applicationId], references: [id])
+
+  preAuthorizedCode     String   @unique
+  credentialOfferUrl    String?  // The full credential offer URL
+  otp                   String?  // PIN/OTP if required
+  credentialType        String   // e.g., "eu.europa.ec.eudi.employee_mdoc"
+  credentialData        Json     // The actual credential data (mDoc or SD-JWT)
+
+  claimed               Boolean  @default(false)
+  claimedAt             DateTime?
+  expiresAt             DateTime
+
+  createdAt             DateTime @default(now())
+
+  @@index([applicationId])
+  @@index([preAuthorizedCode])
+}
+
+// Stores verified credentials received from user's wallet
+model VerifiedCredential {
+  id                    String   @id @default(cuid())
+  applicationId         String
+  application           Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  credentialType        CredentialType // PID, DIPLOMA, SEAFARER
+  namespace             String   // e.g., "eu.europa.ec.eudi.pid.1"
+
+  verifierTransactionId String   // Transaction ID from verifier
+  verifierRequestUri    String   // Deep link used in QR code
+
+  credentialData        Json     // Extracted claims from the credential
+
+  status                String   @default("PENDING") // PENDING, VERIFIED, FAILED
+  verifiedAt            DateTime?
+
+  createdAt             DateTime @default(now())
+
+  @@index([applicationId])
+  @@index([verifierTransactionId])
+  @@index([applicationId, credentialType])
 }

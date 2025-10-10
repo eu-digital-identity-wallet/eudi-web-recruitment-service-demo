@@ -1,6 +1,7 @@
 import "server-only";
 import Link from "next/link";
-import { jobService } from "@/server";
+import { Container } from "@/server";
+import { JobService } from "@/server/services/JobService";
 import {
   Box,
   Button,
@@ -14,8 +15,10 @@ import {
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import JobIcon from "@/components/atoms/JobIcon";
+import CredentialRequirementChips from "@/components/atoms/CredentialRequirementChips";
 
 export default async function JobBoardPage() {
+  const jobService = Container.get(JobService);
   const jobs = await jobService.list();
 
   return (
@@ -33,33 +36,37 @@ export default async function JobBoardPage() {
 
       <Grid container spacing={3}>
         {jobs.map((job) => (
-          <Grid component={Box}  key={job.id}>
+          <Grid component={Box}  key={job.getId()}>
             <Card
               variant="outlined"
-              
+
             >
                <CardHeader
-                              avatar={<JobIcon title={job.title} />}
+                              avatar={<JobIcon title={job.getTitle()} />}
                               title={
                                 <Stack spacing={0.5}>
                                   <Typography variant="h5" component="h1">
-                                    {job.title}
+                                    {job.getTitle()}
                                   </Typography>
                                 </Stack>
                               }
                               subheader={
                                 <>
                                 <Typography variant="body2" color="text.secondary">
-                                    Published on: <strong>{new Date(job.createdAt).toLocaleDateString()}</strong>
+                                    Published on: <strong>{new Date(job.getCreatedAt()).toLocaleDateString('en-GB')}</strong>
                                   </Typography>
-                                </> 
+                                </>
                               }
                             />
 
               <CardContent sx={{ pt: 0 }}>
-                <Typography variant="body1">
-                  {job.description ?? "No description provided."}
+                <Typography variant="body1" sx={{ mb: 2 }}>
+                  {job.getDescription() ?? "No description provided."}
                 </Typography>
+                <CredentialRequirementChips
+                  requiredCredentials={job.getRequiredCredentials() || 'NONE'}
+                  size="small"
+                />
               </CardContent>
 
               <CardActions sx={{
@@ -71,14 +78,14 @@ export default async function JobBoardPage() {
                   }}>
                 <Button
                   component={Link}
-                  href={`/jobs/${job.id}`}
+                  href={`/jobs/${job.getId()}`}
                   variant="contained"
                   color="secondary"
-                  
+
                 >
                   View details
                 </Button>
-                
+
               </CardActions>
             </Card>
           </Grid>

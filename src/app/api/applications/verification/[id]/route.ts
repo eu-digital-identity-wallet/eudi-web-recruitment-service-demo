@@ -1,14 +1,16 @@
 // src/app/api/applications/verification/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { applicationService } from "@/server";
+import { Container } from "@/server";
+import { ApplicationService } from "@/server/services/ApplicationService";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(
   req: NextRequest,
-  ctx: { params: Promise<{ id: string }> }  
+  ctx: { params: Promise<{ id: string }> }
 ) {
+  const applicationService = Container.get(ApplicationService);
   const { id } = await ctx.params;
   const responseCode = req.nextUrl.searchParams.get("response_code") ?? undefined;
 

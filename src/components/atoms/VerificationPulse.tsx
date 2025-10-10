@@ -10,21 +10,32 @@ const ripple = keyframes`
 
 export default function VerificationPulse() {
   return (
-    <Stack alignItems="center" spacing={1.5} sx={{ mt: 2, mb: 1 }}>
+    <Stack
+      direction="row"
+      alignItems="center"
+      spacing={2}
+      sx={{ mt: 1.25 }}
+      role="status"
+      aria-live="polite"
+      aria-label="Waiting for verification from EUDI Wallet"
+    >
+      <Typography variant="body2" color="text.secondary">
+        Waiting for verification from EUDI Wallet
+      </Typography>
       <Box
         sx={{
           position: "relative",
-          width: 48,
-          height: 48,
+          width: 32,
+          height: 32,
           borderRadius: "50%",
           bgcolor: "secondary.main",
-          boxShadow: 3,
+          boxShadow: 2,
           animation: `${ripple} 1.4s ease-in-out infinite`,
+          '@media (prefers-reduced-motion: reduce)': {
+            animation: 'none',
+          },
         }}
       />
-      <Typography variant="body2" color="text.secondary">
-        Waiting for verification…
-      </Typography>
     </Stack>
   );
 }

@@ -4,7 +4,7 @@ import Providers from './providers';
 import AppLayout from '@/components/organisms/AppLayout'; // optional
 import { Metadata } from 'next/types';
 
-export const metadata: Metadata = { title: 'Employer Service' };
+export const metadata: Metadata = { title: 'Recruitment Service Demo' };
 
 
 export default function RootLayout({ children }: { children: ReactNode }) {

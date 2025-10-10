@@ -19,7 +19,7 @@ const Header: React.FC = () => {
           }}
         >
           {/* Logo */}
-          <Link href="/" aria-label="Employer Service home" style={{ textDecoration: "none" }}>
+          <Link href="/" aria-label="Recruitment Service home" style={{ textDecoration: "none" }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
               {/* Monogram badge */}
               <Box
@@ -41,7 +41,7 @@ const Header: React.FC = () => {
                   lineHeight: 1,
                 }}
               >
-                ES
+                RSD
               </Box>
 
               {/* Wordmark */}
@@ -57,7 +57,7 @@ const Header: React.FC = () => {
                   gap: 0.5,
                 }}
               >
-                Employer{" "}
+                Recruitment{" "}
                 <Box component="span" sx={{ color: "secondary.main" }}>
                   Service
                 </Box>

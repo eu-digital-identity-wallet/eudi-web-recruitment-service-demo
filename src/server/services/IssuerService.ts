@@ -1,23 +1,35 @@
 // src/server/services/IssuerService.ts
 import "server-only";
 import { Inject, Service } from "@/server/container";
-import { Application, JobPosting } from "@prisma/client";
-import { ApplicationJWTPayload } from "../types/jwt";
-import { JWTService } from "./JWTService";
+import { Application, JobPosting, Prisma } from "@prisma/client";
 import { env } from "@env";
+import { JWTService } from "./JWTService";
+import { KeystoreService } from "./KeystoreService";
+import { CredentialRepository } from "@/server/repositories/CredentialRepository";
 
 export type IssueReceiptResponse = { offerUrl: string; otp?: string };
+
+interface JWTPayload {
+  iss: string;
+  aud: string;
+  grants: string[];
+  credentials: Array<{
+    credential_configuration_id: string;
+    data: Record<string, unknown>;
+  }>;
+  iat: number;
+  exp: number;
+  [key: string]: unknown;
+}
 
 @Service()
 export class IssuerService {
   constructor(
     @Inject() private readonly jwtService: JWTService,
+    @Inject() private readonly keystoreService: KeystoreService,
+    @Inject() private readonly credentialRepo: CredentialRepository
   ) {}
 
-  /**
-   * Issues an "Application Receipt" credential (OpenID4VCI).
-   * Requires Application joined with JobPosting.
-   */
   public async issueApplicationReceipt(
     app: Application & { job: JobPosting }
   ): Promise<IssueReceiptResponse> {
@@ -26,63 +38,110 @@ export class IssuerService {
       throw new Error("Application is missing verified personal information");
     }
 
-    const now = Math.floor(Date.now() / 1000);
-    const payload: ApplicationJWTPayload = {
-      iss: env.NEXT_PUBLIC_APP_URI || "http://localhost:3000",
-      aud: env.ISSUER_API_URL, // issuer audience/endpoint base
+    // Load keystore and keys
+    const { privateKey, cert } = this.keystoreService.loadKeystore();
+    if (!privateKey || !cert) {
+      throw new Error("Keystore or keys not configured");
+    }
+    
+    //Prepare the JWT payload
+    const jwtPayload: JWTPayload = {
+      iss: env.NEXT_PUBLIC_APP_URI,
+      aud: env.ISSUER_API_URL,
       grants: ["urn:ietf:params:oauth:grant-type:pre-authorized_code"],
       credentials: [
         {
-          credential_configuration_id: "application_receipt_v1",
+          credential_configuration_id: "eu.europa.ec.eudi.employee_mdoc",
           data: {
-            job_board_name: "eudiw-job-board",
-            employer_name: "unknown", // set your org if you have it
-            job_id: app.jobId,
-            job_title: app.job.title,
-            application_id: app.id,
-            application_date: app.createdAt.toISOString(),
-            candidate_family_name: app.candidateFamilyName,
-            candidate_given_name: app.candidateGivenName,
-
+            given_name: app.candidateGivenName,
+            family_name: app.candidateFamilyName,
+            birth_date: app.candidateDateOfBirth,
+            employee_id: app.id,
+            employer_name: "EUDI Web Recruitment Service",
+            employment_start_date: new Date().toISOString().split('T')[0],
+            employment_type: "Contract",
+            country_code: app.candidateNationality || "EU"
           },
         },
       ],
-      iat: now,
-      exp: now + 5 * 60, // 5 minutes
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 300, // 5 minutes
     };
 
-    // 4) Sign ES256 with x5c (JWTService expects (payload, privateKey, certBase64))
-    const jwt = await this.jwtService.sign(payload);
+    // Sign the JWT
+    const jwt = await this.jwtService.sign(jwtPayload);
+    console.log("Generated JWT for credential offer request.");
+    //console.log("Signed JWT:", jwt);
+    // Prepare the request body
+    const requestBody = new URLSearchParams();
+    requestBody.append("request", jwt);
 
-    // 5) Call Issuer to obtain the credential offer
-    const endpoint = new URL("/credentialOfferReq2", env.ISSUER_API_URL).toString();
-    const body = new URLSearchParams({ request: jwt });
+    try {
+      const response = await fetch(`${env.ISSUER_API_URL}/credentialOfferReq2`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: requestBody.toString(),
+      });
 
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: body.toString(),
-    });
+      if (!response.ok) {
+        let errorDetails = "No error details available";
+        let errorMessage = `Issuer API error: ${response.status} ${response.statusText}`;
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Issuer error ${res.status}: ${res.statusText} ${text}`);
+        try {
+          errorDetails = await response.text();
+          // Try to extract error message from HTML response
+          const errorMatch = errorDetails.match(/<h1>(.*?)<\/h1>[\s\S]*?<p>\s*(.*?)\s*<\/p>/);
+          if (errorMatch) {
+            errorMessage = errorMatch[2]; // Use only the paragraph text
+          }
+        } catch (e) {
+          console.error("Could not read error response:", e);
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      const responseData = await response.json();
+
+      // Extract OTP from response
+      const otp = responseData.grants?.["urn:ietf:params:oauth:grant-type:pre-authorized_code"]?.tx_code?.value;
+
+      // Store the pre-authorized code in database
+      const preAuthorizedCode = responseData.grants?.["urn:ietf:params:oauth:grant-type:pre-authorized_code"]?.["pre-authorized_code"];
+
+      // Remove sensitive OTP value from the credential offer before encoding
+      const responseCopy = { ...responseData };
+      if (responseCopy.grants?.["urn:ietf:params:oauth:grant-type:pre-authorized_code"]?.tx_code?.value) {
+        delete responseCopy.grants["urn:ietf:params:oauth:grant-type:pre-authorized_code"].tx_code.value;
+      }
+
+      const offerParam = encodeURIComponent(JSON.stringify(responseCopy));
+      const offerUrl = `openid-credential-offer://?credential_offer=${offerParam}`;
+
+      if (preAuthorizedCode) {
+        await this.credentialRepo.create({
+          application: { connect: { id: app.id } },
+          preAuthorizedCode,
+          credentialOfferUrl: offerUrl,
+          otp: otp ? String(otp) : null,
+          credentialType: "eu.europa.ec.eudi.employee_mdoc",
+          credentialData: jwtPayload.credentials[0].data as Prisma.InputJsonValue,
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+        });
+      }
+
+      return { offerUrl, otp };
+    } catch (error) {
+      throw error;
     }
+  }
 
-    const json = await res.json();
-
-    // 6) Extract OTP (if present) and remove it from the embedded offer
-    const pac = json?.grants?.["urn:ietf:params:oauth:grant-type:pre-authorized_code"];
-    const otp: string | undefined = pac?.tx_code?.value;
-
-    // clone & scrub tx_code.value
-    const offerCopy = JSON.parse(JSON.stringify(json));
-    const pacCopy = offerCopy?.grants?.["urn:ietf:params:oauth:grant-type:pre-authorized_code"];
-    if (pacCopy?.tx_code?.value) pacCopy.tx_code.value = undefined;
-
-    const offerParam = encodeURIComponent(JSON.stringify(offerCopy));
-    const offerUrl = `openid-credential-offer://?credential_offer=${offerParam}`;
-
-    return { offerUrl, otp };
+  /**
+   * Get issued credential by application ID and type
+   */
+  public async getCredentialByApplicationId(applicationId: string, credentialType: string) {
+    return this.credentialRepo.findByApplicationIdAndType(applicationId, credentialType);
   }
 }

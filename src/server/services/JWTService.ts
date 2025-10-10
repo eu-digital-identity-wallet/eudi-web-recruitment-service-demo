@@ -15,7 +15,9 @@ export class JWTService {
     payload: JWTPayload,
   ): Promise<string> {
     const { privateKey, cert } = this.keystoreService.loadKeystore();
-
+    if (!privateKey || !cert) {
+      throw new Error("Keystore or keys not configured");
+    }
     return await new SignJWT(payload)
       .setProtectedHeader({ alg: "ES256", x5c: [cert] })
       .setIssuedAt()

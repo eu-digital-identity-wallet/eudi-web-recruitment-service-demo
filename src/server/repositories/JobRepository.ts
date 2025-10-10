@@ -1,30 +1,53 @@
 import "server-only";
 import { Service } from "@/server/container";
 import { prisma } from "@/server/prisma";
-import type { JobPosting } from "@prisma/client";
+import { JobPosting, Prisma } from "@prisma/client";
 
 @Service()
 export class JobRepository {
-  async list(): Promise<JobPosting[]> {
-    return prisma.jobPosting.findMany({ orderBy: { createdAt: "desc" } });
+  /**
+   * Find all job postings, ordered by creation date
+   */
+  async findAll(): Promise<JobPosting[]> {
+    return prisma.jobPosting.findMany({
+      orderBy: { createdAt: "desc" }
+    });
   }
 
-  async get(id: string): Promise<JobPosting | null> {
-    return prisma.jobPosting.findUnique({ where: { id } });
+  /**
+   * Find job posting by ID
+   */
+  async findById(id: string): Promise<JobPosting | null> {
+    return prisma.jobPosting.findUnique({
+      where: { id }
+    });
   }
 
-  // async create(data: Pick<JobPosting, "title" | "description" | "requiresDL">): Promise<JobPosting> {
-  //   return prisma.jobPosting.create({ data });
-  // }
+  /**
+   * Create new job posting
+   */
+  async create(data: Prisma.JobPostingCreateInput): Promise<JobPosting> {
+    return prisma.jobPosting.create({
+      data
+    });
+  }
 
-  // async update(
-  //   id: string,
-  //   data: Partial<Pick<JobPosting, "title" | "description" | "requiresDL">>
-  // ): Promise<JobPosting> {
-  //   return prisma.jobPosting.update({ where: { id }, data });
-  // }
+  /**
+   * Update job posting
+   */
+  async update(id: string, data: Prisma.JobPostingUpdateInput): Promise<JobPosting> {
+    return prisma.jobPosting.update({
+      where: { id },
+      data
+    });
+  }
 
-  // async remove(id: string): Promise<void> {
-  //   await prisma.jobPosting.delete({ where: { id } });
-  // }
+  /**
+   * Delete job posting
+   */
+  async delete(id: string): Promise<JobPosting> {
+    return prisma.jobPosting.delete({
+      where: { id }
+    });
+  }
 }

@@ -1,54 +1,54 @@
 import "server-only";
 import { Service } from "@/server/container";
 import { prisma } from "@/server/prisma";
-import type { ApplicationStatus } from "@prisma/client";
+import { Application, JobPosting, Prisma } from "@prisma/client";
 
 @Service()
 export class ApplicationRepository {
-  async create(jobId: string): Promise<{ id: string }> {
-    const app = await prisma.application.create({ data: { jobId } });
-    return { id: app.id };
-  }
-
-  async setVerificationInit(appId: string, opts: {
-    transactionId?: string;
-    requestUri?: string;
-    sameDeviceFlow: boolean;
-  }) {
-    await prisma.application.update({
-      where: { id: appId },
-      data: {
-        verifierTransactionId: opts.transactionId,
-        verifierRequestUri: opts.requestUri,
-        sameDeviceFlow: opts.sameDeviceFlow,
-      },
+  /**
+   * Find application by ID
+   */
+  async findById(id: string): Promise<Application | null> {
+    return prisma.application.findUnique({
+      where: { id }
     });
   }
 
-  async setVerified(appId: string, data: { family: string; given: string; email: string; phone: string ;nationality: string}) {
-    await prisma.application.update({
-      where: { id: appId },
-      data: {
-        status: "VERIFIED",
-        candidateFamilyName: data.family,
-        candidateGivenName: data.given,
-        candidateEmail:data.email,
-        candidateMobilePhone:data.phone,
-        candidateNationality:data.nationality
-      },
+  /**
+   * Find application by ID with job relation
+   */
+  async findByIdWithJob(id: string): Promise<(Application & { job: JobPosting | null }) | null> {
+    return prisma.application.findUnique({
+      where: { id },
+      include: { job: true }
     });
   }
-  
-  async setIssued(appId: string, url: string) {
-    await prisma.application.update({
-      where: { id: appId },
-      data: { status: "ISSUED", credentialOfferUrl: url },
+
+  /**
+   * Create new application
+   */
+  async create(data: Prisma.ApplicationCreateInput): Promise<Application> {
+    return prisma.application.create({
+      data
     });
   }
-  async get(appId: string) {
-    return prisma.application.findUnique({ where: { id: appId }, include: { job: true } });
+
+  /**
+   * Update application
+   */
+  async update(id: string, data: Prisma.ApplicationUpdateInput): Promise<Application> {
+    return prisma.application.update({
+      where: { id },
+      data
+    });
   }
-  async setStatus(appId: string, status: ApplicationStatus) {
-    await prisma.application.update({ where: { id: appId }, data: { status } });
+
+  /**
+   * Delete application (if needed)
+   */
+  async delete(id: string): Promise<Application> {
+    return prisma.application.delete({
+      where: { id }
+    });
   }
 }

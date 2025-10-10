@@ -16,7 +16,7 @@ async function ensureJob(params: { title: string; description: string; requiresD
 }
 
 async function main() {
-  // 1) Marine Superintendent (from the screenshot)
+  console.log("🌱 Seeding database...") ;
   await ensureJob({
     title: "Marine Superintendent",
     requiresDL: false,
@@ -36,7 +36,6 @@ async function main() {
     ].join("\n"),
   });
 
-  // 2) Captain (similar context)
   await ensureJob({
     title: "Captain",
     requiresDL: false,

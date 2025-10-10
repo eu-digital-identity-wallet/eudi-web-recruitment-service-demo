@@ -1,19 +1,21 @@
 import "server-only";
 import { notFound } from "next/navigation";
-import { applicationService } from "@/server";
+import { Container } from "@/server";
+import { ApplicationService } from "@/server/services/ApplicationService";
 
 import {
   Box,
   Card,
   CardContent,
   CardHeader,
-  Divider,
   Stack,
   Typography,
 } from "@mui/material";
+import Image from "next/image";
 import JobIcon from "@/components/atoms/JobIcon";
 import ApplicationVerificationPoller from "@/components/atoms/ApplicationVerificationPoller";
 import VerificationPulse from "@/components/atoms/VerificationPulse";
+import LogoBanner from "@/components/atoms/LogoBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +24,7 @@ export default async function ApplicationPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const applicationService = Container.get(ApplicationService);
   const { id } = await params;
   const app = await applicationService.details(id);
   if (!app) return notFound();
@@ -50,32 +53,60 @@ export default async function ApplicationPage({
                     <Typography variant="body2" color="text.secondary">
                         Application ID: <strong>{app.id}</strong>
                       </Typography>
-                    </>                    
+                    <Typography variant="body2" color="text.secondary">
+                        Requesting: <strong>PID</strong>
+                      </Typography>
+                    </>
                   }
                 />
 
-        <Divider />
-
-        <CardContent sx={{ pt: 4, textAlign: "center" }}>
-          <Typography variant="body1" sx={{ mb: 2 }}>
-            Scan this QR code with your EUDI Wallet to continue verification.
-          </Typography>
-
-          {/* Big QR */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={`/api/applications/qr/${app.id}`}
-            alt="Verification QR"
-            style={{
-              width: 340,
-              height: 340,
-              margin: "0 auto",
-              display: "block",
+        <CardContent sx={{ pt: 0, textAlign: "center", '&:last-child': { pb: 2 } }}>
+          {/* QR Code */}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              p: 2,
+              border: 1,
+              borderColor: 'divider',
+              borderRadius: 0,
             }}
-          />
+          >
+            <Typography variant="h6" sx={{ mb: 1 }}>
+              Scan with EUDI Wallet
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Open your EUDI Wallet app and scan this QR code to verify your identity
+            </Typography>
+            <Box
+              sx={{
+                p: 2,
+                bgcolor: "white",
+                borderRadius: 1,
+                display: "inline-block",
+                border: "1px solid",
+                borderColor: "divider",
+              }}
+            >
+              <Image
+                src={`/api/applications/qr/${app.id}`}
+                alt="Verification QR"
+                width={340}
+                height={340}
+                style={{ display: "block" }}
+                priority
+                unoptimized
+              />
+            </Box>
+          </Box>
 
-          {/* Visual feedback while polling */}
-          <VerificationPulse />
+          {/* Logo Banner with integrated loading */}
+          <Box sx={{ mt: 2 }}>
+            <LogoBanner>
+              <VerificationPulse />
+            </LogoBanner>
+          </Box>
 
           {/* Poller triggers redirect to /applications/confirmation/[id] when status:true */}
           <Box sx={{ mt: 1 }}>
