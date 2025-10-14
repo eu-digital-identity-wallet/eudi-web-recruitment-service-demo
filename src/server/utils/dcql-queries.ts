@@ -1,7 +1,6 @@
 import { VpTokenRequest } from "@/server/types/eudi";
 import { env } from "env";
-
-export type CredentialType = 'PID' | 'DIPLOMA' | 'SEAFARER' | 'BOTH' ;
+import type { CredentialType } from "@/server/domain/types";
 
 export interface DcqlQueryOptions {
   applicationId: string;

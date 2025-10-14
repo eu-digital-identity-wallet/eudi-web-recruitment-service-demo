@@ -42,33 +42,19 @@ export default async function ApplicationExtrasPage({
   if (extrasCredentials.length === 0) return notFound();
 
   // Determine what was requested based on credentials
-  let extrasCredentialType: string;
   const hasDiploma = extrasCredentials.some((c) => c.credentialType === "DIPLOMA");
   const hasSeafarer = extrasCredentials.some((c) => c.credentialType === "SEAFARER");
 
+  let extrasCredentialTypeLabel: string;
   if (hasDiploma && hasSeafarer) {
-    extrasCredentialType = "BOTH";
+    extrasCredentialTypeLabel = "Diploma & Seafarer Certificate";
   } else if (hasDiploma) {
-    extrasCredentialType = "DIPLOMA";
+    extrasCredentialTypeLabel = "Diploma";
   } else {
-    extrasCredentialType = "SEAFARER";
+    extrasCredentialTypeLabel = "Seafarer Certificate";
   }
 
   const title = app.job?.title ?? "Application";
-
-  // Format credential type for display
-  const formatCredentialType = (type: string) => {
-    switch (type) {
-      case "BOTH":
-        return "Diploma & Seafarer Certificate";
-      case "DIPLOMA":
-        return "Diploma";
-      case "SEAFARER":
-        return "Seafarer Certificate";
-      default:
-        return type;
-    }
-  };
 
   return (
     <main>
@@ -88,7 +74,7 @@ export default async function ApplicationExtrasPage({
                 Application ID: <strong>{app.id}</strong>
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Requesting: <strong>{formatCredentialType(app.extrasCredentialType)}</strong>
+                Requesting: <strong>{extrasCredentialTypeLabel}</strong>
               </Typography>
             </>
           }

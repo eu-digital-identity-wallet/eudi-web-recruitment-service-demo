@@ -3,8 +3,7 @@
 import { Chip, Stack, Typography } from "@mui/material";
 import SchoolIcon from "@mui/icons-material/School";
 import DirectionsBoatIcon from "@mui/icons-material/DirectionsBoat";
-
-export type CredentialType = 'NONE' | 'DIPLOMA' | 'SEAFARER' | 'BOTH' | 'PID';
+import type { CredentialType } from "@/server/domain/types";
 
 interface CredentialRequirementChipsProps {
   requiredCredentials: CredentialType;

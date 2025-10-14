@@ -1,6 +1,6 @@
 import { JobPosting as PrismaJob } from "@prisma/client";
 import { Job } from "../entities/Job";
-import type { CredentialType } from "../entities/Application";
+import type { CredentialType } from "../types";
 
 export class JobMapper {
   /**

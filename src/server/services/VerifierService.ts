@@ -2,7 +2,8 @@ import { env } from "env";
 import { VerificationResponse, VpTokenRequest } from "@/server/types/eudi";
 import { Inject, Service } from "@/server/container";
 import { DataDecoderService } from "./DataDecoderService";
-import { buildVpTokenRequest, CredentialType } from "@/server/utils/dcql-queries";
+import { buildVpTokenRequest } from "@/server/utils/dcql-queries";
+import type { CredentialType } from "@/server/domain/types";
 
 
 @Service()
@@ -119,7 +120,6 @@ console.log("Verifier response status:", response.status);
     TransactionId: string,
     responseCode?:string
   ): Promise<VerificationResponse> {
-    console.log("checkVerification called with:", { TransactionId, responseCode });
     if (!TransactionId) {
       throw new Error("Transaction ID is undefined.");
     }
@@ -129,7 +129,6 @@ console.log("Verifier response status:", response.status);
       if(responseCode){
         url += `?response_code=${responseCode}`;
       }
-      console.log("Fetching verification from URL:", url);
       const response = await fetch(url, {
         method: "GET",
         headers: { Accept: "application/json" },
@@ -217,6 +216,13 @@ console.log("Verifier response status:", response.status);
         ok = Object.values(verifiedCredentials).some(
           claims => claims["family_name"] !== undefined && claims["family_name"] !== null
         );
+      }
+
+      // Log success details only when verification succeeds
+      if (ok) {
+        console.log("checkVerification called with:", { TransactionId, responseCode });
+        console.log("Fetching verification from URL:", url);
+        console.log("Verification successful");
       }
 
       return {
