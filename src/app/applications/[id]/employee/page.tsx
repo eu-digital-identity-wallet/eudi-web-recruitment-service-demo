@@ -60,7 +60,6 @@ export default async function EmployeeCredentialPage({
   }
 
   const otp = existingCredential?.otp;
-  const title = app.job?.title ?? "Application";
 
   return (
     <main>

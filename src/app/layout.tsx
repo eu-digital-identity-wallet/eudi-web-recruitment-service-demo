@@ -6,6 +6,8 @@ import { Metadata } from 'next/types';
 
 export const metadata: Metadata = { title: 'Recruitment Service Demo' };
 
+export const dynamic = "force-dynamic";
+
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

@@ -2,6 +2,8 @@ import "server-only";
 import Link from "next/link";
 import { Container } from "@/server";
 import { JobService } from "@/server/services/JobService";
+
+export const dynamic = "force-dynamic";
 import {
   Box,
   Button,

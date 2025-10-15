@@ -1,4 +1,4 @@
-import { CredentialType } from "./Application";
+import { CredentialType } from "../types";
 
 export class Job {
   private constructor(

@@ -1,8 +1,5 @@
 // src/app/api/applications/qr-issue/[id]/route.ts
 import { NextResponse } from "next/server";
-import { Container } from "@/server";
-import { ApplicationService } from "@/server/services/ApplicationService";
-import { IssuerService } from "@/server/services/IssuerService";
 import QRCode from "qrcode";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {

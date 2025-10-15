@@ -18,7 +18,6 @@ import { Chip } from "@mui/material";
 import SchoolIcon from "@mui/icons-material/School";
 import DirectionsBoatIcon from "@mui/icons-material/DirectionsBoat";
 import BadgeIcon from "@mui/icons-material/Badge";
-import LogoBanner from "@/components/atoms/LogoBanner";
 
 
 function Field({ label, value }: { label: string; value?: string | null }) {
@@ -155,35 +154,34 @@ export default async function ApplicationConfirmationPage({
                         Verified Credentials:
                       </Typography>
                       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                        {verifiedCredentials.map((cred) => {
-                          const isVerified = cred.status === "VERIFIED";
-                          const isPending = cred.status === "PENDING";
+                        {verifiedCredentials
+                          .filter((cred) => cred.status === "VERIFIED")
+                          .map((cred) => {
+                            let icon = <BadgeIcon />;
+                            let label: string = cred.credentialType;
 
-                          let icon = <BadgeIcon />;
-                          let label = cred.credentialType;
+                            if (cred.credentialType === "PID") {
+                              icon = <BadgeIcon />;
+                              label = "PID (Person Identification)";
+                            } else if (cred.credentialType === "DIPLOMA") {
+                              icon = <SchoolIcon />;
+                              label = "Diploma";
+                            } else if (cred.credentialType === "SEAFARER") {
+                              icon = <DirectionsBoatIcon />;
+                              label = "Seafarer Certificate";
+                            }
 
-                          if (cred.credentialType === "PID") {
-                            icon = <BadgeIcon />;
-                            label = "PID (Person Identification)";
-                          } else if (cred.credentialType === "DIPLOMA") {
-                            icon = <SchoolIcon />;
-                            label = "Diploma";
-                          } else if (cred.credentialType === "SEAFARER") {
-                            icon = <DirectionsBoatIcon />;
-                            label = "Seafarer Certificate";
-                          }
-
-                          return (
-                            <Chip
-                              key={cred.id}
-                              icon={icon}
-                              label={label}
-                              color={isVerified ? "success" : isPending ? "warning" : "default"}
-                              size="small"
-                              variant="filled"
-                            />
-                          );
-                        })}
+                            return (
+                              <Chip
+                                key={cred.id}
+                                icon={icon}
+                                label={label}
+                                color="success"
+                                size="small"
+                                variant="filled"
+                              />
+                            );
+                          })}
                       </Stack>
                     </Grid>
                   </Box>
