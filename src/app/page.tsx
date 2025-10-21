@@ -1,3 +1,3 @@
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
-export { default } from "./jobs/page";
+export { default } from './jobs/page';
