@@ -1,34 +1,29 @@
-import { NextResponse } from "next/server";
-import { Container } from "@/server";
-import { ApplicationService } from "@/server/services/ApplicationService";
+import { NextResponse } from 'next/server';
 
-export const dynamic = "force-dynamic";
+import { Container } from '@/server';
+import { ApplicationService } from '@/server/services/ApplicationService';
 
-export async function POST(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const applicationService = Container.get(ApplicationService);
-    const { id: applicationId } = await params;
+export const dynamic = 'force-dynamic';
 
-    // Issue the application receipt credential
-    const result = await applicationService.issueReceipt(applicationId);
+export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+	try {
+		const applicationService = Container.get(ApplicationService);
+		const { id: applicationId } = await params;
 
-    if (!result) {
-      return NextResponse.json(
-        { error: "Application not found" },
-        { status: 404 }
-      );
-    }
+		// Issue the application receipt credential
+		const result = await applicationService.issueReceipt(applicationId);
 
-    return NextResponse.json({
-      success: true,
-      offerUrl: result.offerUrl,
-    });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Failed to issue receipt";
-    const code = /not found/i.test(msg) ? 404 : /cannot issue/i.test(msg) ? 400 : 500;
-    return NextResponse.json({ error: msg }, { status: code });
-  }
+		if (!result) {
+			return NextResponse.json({ error: 'Application not found' }, { status: 404 });
+		}
+
+		return NextResponse.json({
+			success: true,
+			offerUrl: result.offerUrl,
+		});
+	} catch (err: unknown) {
+		const msg = err instanceof Error ? err.message : 'Failed to issue receipt';
+		const code = /not found/i.test(msg) ? 404 : /cannot issue/i.test(msg) ? 400 : 500;
+		return NextResponse.json({ error: msg }, { status: code });
+	}
 }

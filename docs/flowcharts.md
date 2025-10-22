@@ -208,6 +208,21 @@ graph LR
         U[KeystoreService]
     end
 
+    subgraph "Verification Services"
+        V1[CredentialVerificationService]
+        V2[PidQueryService]
+        V3[DiplomaQueryService]
+        V4[SeafarerQueryService]
+    end
+
+    subgraph "Issuance Services"
+        I1[EmployeeCredentialService]
+    end
+
+    subgraph "Signing Services"
+        S1[DocumentSigningService]
+    end
+
     subgraph "Repositories"
         V[ApplicationRepository]
         W[JobRepository]
@@ -247,9 +262,15 @@ graph LR
     O --> V
     O --> Y
     P --> W
+    Q --> V1
     Q --> S
+    R --> I1
     R --> T
     R --> U
+
+    V1 --> V2
+    V1 --> V3
+    V1 --> V4
 
     Q --> Z
     R --> AA
@@ -447,6 +468,7 @@ graph TD
 ## Key Points
 
 ### Verification Flow
+
 - Uses **DCQL (Distributed Credential Query Language)** to request specific credential fields
 - Supports both **same-device** (deep link) and **cross-device** (QR code) flows
 - **Polls** verification status every 1 second for both PID and extras
@@ -455,6 +477,7 @@ graph TD
 - Supports multiple credential types: **PID** (always required), **DIPLOMA**, and **SEAFARER** (optional)
 
 ### Two-Stage Verification Process
+
 1. **Initial PID Verification**: Required for all applications
    - Creates Application with CREATED status
    - Stores PID verification transaction in VerifiedCredential table
@@ -468,6 +491,7 @@ graph TD
    - Verification happens on separate `/extras` page with new QR code
 
 ### Credential Issuance Flow
+
 - Stores application data locally but uses **external EUDI issuer** for actual credential creation
 - Uses **pre-authorized code** grant type (OpenID4VCI)
 - Generates QR codes for wallet scanning
@@ -475,6 +499,7 @@ graph TD
 - Stores issued credentials in **IssuedCredential** table with tracking
 
 ### Architecture Pattern
+
 - **Clean Architecture** with clear separation of concerns
 - **Dependency Injection** using TypeDI
 - **Repository Pattern** for data access with 4 repositories:
@@ -482,5 +507,21 @@ graph TD
   - JobRepository
   - CredentialRepository (for issued credentials)
   - VerifiedCredentialRepository (for verified credentials from wallet)
-- **Service Layer** for business logic
+- **Service Layer** organized by domain:
+  - **Verification Services** (`/services/verification/`):
+    - `CredentialVerificationService` - Orchestrates verification workflows
+    - `PidQueryService` - Builds DCQL queries for PID credentials
+    - `DiplomaQueryService` - Builds DCQL queries for diploma credentials
+    - `SeafarerQueryService` - Builds DCQL queries for seafarer credentials
+  - **Issuance Services** (`/services/issuance/`):
+    - `EmployeeCredentialService` - Builds employee credential data
+  - **Signing Services** (`/services/signing/`):
+    - `DocumentSigningService` - Handles document signing workflows (QES)
+  - **Core Services**:
+    - `ApplicationService` - Orchestrates application lifecycle
+    - `VerifierService` - EUDI verifier API integration
+    - `IssuerService` - EUDI issuer API integration
+    - `DataDecoderService` - CBOR/VP token decoding
+    - `JWTService` - JWT signing
+    - `KeystoreService` - Keystore management
 - **Input Validation** using Zod schemas with decorators
