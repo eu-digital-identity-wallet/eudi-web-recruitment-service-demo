@@ -9,9 +9,9 @@ import { JobRepository } from '@/server/repositories/JobRepository';
 import { VerifiedCredentialRepository } from '@/server/repositories/VerifiedCredentialRepository';
 import {
 	applicationCreateSchema,
+	applicationExtrasSchema,
 	applicationIdSchema,
 	applicationVerificationSchema,
-	applicationExtrasSchema,
 } from '@/server/schemas/application';
 
 import { IssuerService } from './IssuerService';
@@ -65,7 +65,7 @@ export class ApplicationService {
 		const initVerificationResponse = await this.verifier.initVerification(
 			application.getId(),
 			newRequesParamsFor.sameDeviceFlow,
-			'PID',
+			['PID'],
 		);
 
 		// Create PENDING VerifiedCredential record for PID
@@ -128,7 +128,9 @@ export class ApplicationService {
 		const extrasCredentials = await this.verifiedCredentialRepo.findByApplicationId(applicationId);
 		const extrasCredential = extrasCredentials.find(
 			(c) =>
-				(c.credentialType === 'DIPLOMA' || c.credentialType === 'SEAFARER') &&
+				(c.credentialType === 'DIPLOMA' ||
+					c.credentialType === 'SEAFARER' ||
+					c.credentialType === 'TAXRESIDENCY') &&
 				c.status === 'PENDING',
 		);
 
@@ -264,7 +266,7 @@ export class ApplicationService {
 	@ValidateInput(applicationExtrasSchema)
 	public async requestAdditionalCredentials(data: {
 		applicationId: string;
-		credentialType: 'DIPLOMA' | 'SEAFARER' | 'BOTH';
+		credentialType: CredentialType[];
 		sameDeviceFlow: boolean;
 	}): Promise<{ url: string }> {
 		const { applicationId, credentialType, sameDeviceFlow } = data;
@@ -289,19 +291,30 @@ export class ApplicationService {
 		// Create PENDING VerifiedCredential records for requested credentials
 		const credentialsToCreate: Array<{ type: CredentialType; namespace: string }> = [];
 
-		if (credentialType === 'DIPLOMA' || credentialType === 'BOTH') {
+		console.log(credentialType);
+
+		if (credentialType.includes('DIPLOMA')) {
 			credentialsToCreate.push({
 				type: 'DIPLOMA',
 				namespace: 'urn:eu.europa.ec.eudi:diploma:1:1',
 			});
 		}
 
-		if (credentialType === 'SEAFARER' || credentialType === 'BOTH') {
+		if (credentialType.includes('SEAFARER')) {
 			credentialsToCreate.push({
 				type: 'SEAFARER',
 				namespace: 'eu.europa.ec.eudi.seafarer.1',
 			});
 		}
+
+		if (credentialType.includes('TAXRESIDENCY')) {
+			credentialsToCreate.push({
+				type: 'TAXRESIDENCY',
+				namespace: 'urn:eu.europa.ec.eudi:tax:1:1',
+			});
+		}
+
+		console.log(credentialsToCreate);
 
 		// Create PENDING records for each credential
 		for (const { type, namespace } of credentialsToCreate) {
@@ -334,7 +347,9 @@ export class ApplicationService {
 		const extrasCredentials = await this.verifiedCredentialRepo.findByApplicationId(applicationId);
 		const extrasCredential = extrasCredentials.find(
 			(c) =>
-				(c.credentialType === 'DIPLOMA' || c.credentialType === 'SEAFARER') &&
+				(c.credentialType === 'DIPLOMA' ||
+					c.credentialType === 'SEAFARER' ||
+					c.credentialType === 'TAXRESIDENCY') &&
 				c.status === 'PENDING',
 		);
 

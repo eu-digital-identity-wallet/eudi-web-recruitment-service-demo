@@ -1,3 +1,4 @@
+import { CredentialType } from '@prisma/client';
 import { NextResponse } from 'next/server';
 
 import { Container } from '@/server';
@@ -13,9 +14,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
 		const diploma = json.diploma ?? false;
 		const seafarer = json.seafarer ?? false;
+		const taxResidency = json.taxResidency ?? false;
 		const sameDeviceFlow = json.sameDeviceFlow ?? false;
 
-		if (!diploma && !seafarer) {
+		if (!diploma && !seafarer && !taxResidency) {
 			return NextResponse.json(
 				{ error: 'At least one credential type must be selected' },
 				{ status: 400 },
@@ -23,13 +25,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 		}
 
 		// Determine credential type based on checkboxes
-		let credentialType: 'DIPLOMA' | 'SEAFARER' | 'BOTH';
-		if (diploma && seafarer) {
-			credentialType = 'BOTH';
-		} else if (diploma) {
-			credentialType = 'DIPLOMA';
-		} else {
-			credentialType = 'SEAFARER';
+		const credentialType: CredentialType[] = [];
+		if (diploma) {
+			credentialType.push(CredentialType.DIPLOMA);
+		}
+		if (seafarer) {
+			credentialType.push(CredentialType.SEAFARER);
+		}
+		if (taxResidency) {
+			credentialType.push(CredentialType.TAXRESIDENCY);
 		}
 
 		const result = await applicationService.requestAdditionalCredentials({

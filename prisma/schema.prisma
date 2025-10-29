@@ -19,7 +19,7 @@ enum CredentialType {
   PID
   DIPLOMA
   SEAFARER
-  BOTH
+  TAXRESIDENCY
 }
 
 model JobPosting {

@@ -17,7 +17,7 @@ export class VerifierService {
 	public async initVerification(
 		applicationId: string,
 		sameDeviceFlow: boolean,
-		credentialType: CredentialType = 'PID',
+		credentialType: CredentialType[] = ['PID'],
 	): Promise<{ requestUri: string; TransactionId: string }> {
 		console.log('Init verification called with:', {
 			applicationId,
@@ -25,7 +25,7 @@ export class VerifierService {
 			credentialType,
 		});
 		// Use the credential type directly - callers should pass the correct type
-		const actualCredentialTypes: CredentialType = credentialType;
+		const actualCredentialTypes: CredentialType[] = credentialType;
 
 		const payload: VpTokenRequest = this.credentialVerificationService.prepareVerificationRequest({
 			applicationId,

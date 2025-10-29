@@ -8,6 +8,6 @@
  * - PID: Personal Identification Document
  * - DIPLOMA: Educational diploma certificate
  * - SEAFARER: Seafarer certificate
- * - BOTH: Both diploma and seafarer certificates
+ * - TAXRESIDENCY: Tax Residency certificate
  */
-export type CredentialType = 'NONE' | 'PID' | 'DIPLOMA' | 'SEAFARER' | 'BOTH';
+export type CredentialType = 'NONE' | 'PID' | 'DIPLOMA' | 'SEAFARER' | 'TAXRESIDENCY';

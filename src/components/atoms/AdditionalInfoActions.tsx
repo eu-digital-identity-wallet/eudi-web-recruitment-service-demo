@@ -20,12 +20,13 @@ import LogoBox from './LogoBox';
 export default function AdditionalInfoActions({ applicationId }: { applicationId: string }) {
 	const [diploma, setDiploma] = useState(false);
 	const [seafarer, setSeafarer] = useState(false);
+	const [taxResidency, setTaxResidency] = useState(false);
 	const [busy, setBusy] = useState<'provide' | 'sign' | 'finalise' | null>(null);
 	const [contractStatus, setContractStatus] = useState<
 		'loading' | 'not_signed' | 'signing' | 'signed'
 	>('loading');
 
-	const disabled = !diploma && !seafarer;
+	const disabled = !diploma && !seafarer && !taxResidency;
 
 	// Check contract signing status on mount
 	useEffect(() => {
@@ -84,7 +85,7 @@ export default function AdditionalInfoActions({ applicationId }: { applicationId
 			const response = await fetch(`/api/applications/${applicationId}/extras`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ diploma, seafarer, sameDeviceFlow: false }),
+				body: JSON.stringify({ diploma, seafarer, taxResidency, sameDeviceFlow: false }),
 			});
 
 			if (!response.ok) {
@@ -111,7 +112,7 @@ export default function AdditionalInfoActions({ applicationId }: { applicationId
 			const response = await fetch(`/api/applications/${applicationId}/extras`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ diploma, seafarer, sameDeviceFlow: true }),
+				body: JSON.stringify({ diploma, seafarer, taxResidency, sameDeviceFlow: true }),
 			});
 
 			if (!response.ok) {
@@ -164,6 +165,12 @@ export default function AdditionalInfoActions({ applicationId }: { applicationId
 				<FormControlLabel
 					control={<Checkbox checked={seafarer} onChange={(e) => setSeafarer(e.target.checked)} />}
 					label="Seafarer Certificate"
+				/>
+				<FormControlLabel
+					control={
+						<Checkbox checked={taxResidency} onChange={(e) => setTaxResidency(e.target.checked)} />
+					}
+					label="Tax Residency"
 				/>
 			</Stack>
 

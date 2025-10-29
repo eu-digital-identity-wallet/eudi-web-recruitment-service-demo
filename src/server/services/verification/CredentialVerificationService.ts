@@ -1,6 +1,7 @@
 import { Service } from 'typedi';
 
 import { Inject } from '@/server/container';
+import { TaxResidencyQueryService } from '@/server/services/verification/queries/TaxResidencyQueryService';
 import { VpTokenRequest } from '@/server/types/eudi';
 import { env } from 'env';
 
@@ -12,7 +13,7 @@ import type { CredentialType } from '@/server/domain/types';
 
 export interface CredentialVerificationOptions {
 	applicationId: string;
-	credentialTypes: CredentialType;
+	credentialTypes: CredentialType[];
 	sameDeviceFlow: boolean;
 }
 
@@ -27,6 +28,7 @@ export class CredentialVerificationService {
 		@Inject() private readonly pidQueryService: PidQueryService,
 		@Inject() private readonly diplomaQueryService: DiplomaQueryService,
 		@Inject() private readonly seafarerQueryService: SeafarerQueryService,
+		@Inject() private readonly taxResidencyQueryService: TaxResidencyQueryService,
 	) {}
 
 	/**
@@ -37,29 +39,33 @@ export class CredentialVerificationService {
 		const credentials: VpTokenRequest['dcql_query']['credentials'] = [];
 
 		// Build credentials based on requirements
-		switch (options.credentialTypes) {
-			case 'PID':
-				credentials.push(this.pidQueryService.buildQuery(options.applicationId));
-				break;
-
-			case 'DIPLOMA':
-				credentials.push(this.diplomaQueryService.buildQuery(options.applicationId));
-				break;
-
-			case 'SEAFARER':
-				credentials.push(this.seafarerQueryService.buildQuery(options.applicationId));
-				break;
-
-			case 'BOTH':
-				credentials.push(this.diplomaQueryService.buildQuery(options.applicationId));
-				credentials.push(this.seafarerQueryService.buildQuery(options.applicationId));
-				break;
-
-			default:
-				throw new Error(`Unsupported credential type: ${options.credentialTypes}`);
-		}
+		options.credentialTypes.forEach((credentialType) => {
+			credentials.push(this.buildCredentialQuery(credentialType, options.applicationId));
+		});
 
 		return { credentials };
+	}
+
+	private buildCredentialQuery(
+		credentialType: string,
+		applicationId: string,
+	): VpTokenRequest['dcql_query']['credentials'][0] {
+		switch (credentialType) {
+			case 'PID':
+				return this.pidQueryService.buildQuery(applicationId);
+
+			case 'DIPLOMA':
+				return this.diplomaQueryService.buildQuery(applicationId);
+
+			case 'SEAFARER':
+				return this.seafarerQueryService.buildQuery(applicationId);
+
+			case 'TAXRESIDENCY':
+				return this.taxResidencyQueryService.buildQuery(applicationId);
+
+			default:
+				throw new Error(`Unsupported credential type: ${credentialType}`);
+		}
 	}
 
 	/**
@@ -101,8 +107,8 @@ export class CredentialVerificationService {
 				return this.diplomaQueryService.getDescription();
 			case 'SEAFARER':
 				return this.seafarerQueryService.getDescription();
-			case 'BOTH':
-				return 'Both diploma and seafarer certificates required';
+			case 'TAXRESIDENCY':
+				return this.taxResidencyQueryService.getDescription();
 			default:
 				return 'Unknown credential requirements';
 		}
