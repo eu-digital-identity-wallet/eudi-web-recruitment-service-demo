@@ -33,8 +33,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ state: string 
 		}
 
 		// Return document as PDF
-		// Send buffer directly instead of converting to Uint8Array
-		return new NextResponse(documentContent, {
+		// Convert Buffer to Uint8Array for NextResponse compatibility
+		return new NextResponse(new Uint8Array(documentContent), {
 			status: 200,
 			headers: {
 				'Content-Type': 'application/pdf',
