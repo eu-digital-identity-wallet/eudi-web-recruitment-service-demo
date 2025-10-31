@@ -13,10 +13,15 @@ This project showcases how traditional recruitment processes can be enhanced wit
 - **Two-Stage Verification**:
   - Initial PID verification (required for all applications)
   - Optional extras verification (diploma/seafarer certificates)
+- **Document Signing with QES**: Sign employment contracts using Qualified Electronic Signatures (eIDAS QES)
+  - Professional PDF contract generation with pdf-lib
+  - SHA-256 document hashing for integrity verification
+  - EUDI Wallet-based signing with qualified certificates
+  - Real-time signing status polling
 - **Multi-Device Support**: Same-device deep links and cross-device QR code flows
 - **Independent Credential Tracking**: Each verified credential has its own transaction and status
 - **Credential Management**: Receive verifiable employment credentials in wallet
-- **Real-Time Polling**: 1-second polling intervals for verification status updates
+- **Real-Time Polling**: 1.5-second polling intervals for verification and signing status updates
 - **Professional Branding**: Consistent European Commission and EUDI Wallet branding
 - **Modern UI**: Clean, responsive Material-UI design with accessibility features
 
@@ -40,10 +45,12 @@ This project showcases how traditional recruitment processes can be enhanced wit
 
 ### Digital Identity & Security
 
-- **JOSE** - JSON Web Token handling
+- **JOSE** - JSON Web Token handling (JWT signing with ES256)
 - **CBOR-X** - Efficient credential encoding/decoding
 - **JKS-JS** - Java KeyStore integration
 - **QRCode** - QR code generation for verification flows
+- **pdf-lib** - Professional PDF generation for contracts
+- **crypto** - SHA-256 document hashing and cryptographic operations
 
 ### Development Tools
 
@@ -200,18 +207,31 @@ User → Next.js Page → API Route → Service → Repository → Database
 src/
 ├── app/                    # Next.js App Router
 │   ├── api/               # API routes
-│   │   └── applications/   # Application-related endpoints
-│   │       ├── create/                    # POST: Create new applications
-│   │       ├── verification/[id]/         # GET: PID verification status polling
-│   │       ├── verification-extras/[id]/  # GET: Extras verification status polling
-│   │       ├── qr/[id]/                   # GET: Generate PID verification QR code
-│   │       ├── qr-extras/[id]/            # GET: Generate extras verification QR code
-│   │       ├── qr-issue/[id]/             # GET: Generate credential offer QR code
-│   │       └── [id]/
-│   │           ├── extras/                # POST: Request additional credentials
-│   │           └── issue-receipt/         # POST: Issue application receipt credential
+│   │   ├── applications/   # Application-related endpoints
+│   │   │   ├── create/                    # POST: Create new applications
+│   │   │   ├── verification/[id]/         # GET: PID verification status polling
+│   │   │   ├── verification-extras/[id]/  # GET: Extras verification status polling
+│   │   │   ├── signing-status/[id]/       # GET: Document signing status polling
+│   │   │   ├── qr/[id]/                   # GET: Generate PID verification QR code
+│   │   │   ├── qr-extras/[id]/            # GET: Generate extras verification QR code
+│   │   │   ├── qr-sign/[id]/              # GET: Generate document signing QR code
+│   │   │   ├── qr-issue/[id]/             # GET: Generate credential offer QR code
+│   │   │   └── [id]/
+│   │   │       ├── extras/                # POST: Request additional credentials
+│   │   │       ├── sign-document/         # POST: Initiate contract signing
+│   │   │       └── issue-receipt/         # POST: Issue application receipt credential
+│   │   ├── documents/[state]/             # GET: Serve PDF documents for signing
+│   │   ├── request.jwt/[state]/           # GET: Retrieve JWT signing request
+│   │   └── signed-document/[state]/       # POST: Receive signed documents from wallet
 │   ├── jobs/              # Job listing and detail pages
 │   ├── applications/      # Application management and status pages
+│   │   └── [id]/
+│   │       ├── page.tsx                   # PID verification QR display
+│   │       ├── callback/                  # Verification callback handler
+│   │       ├── confirmation/              # Post-verification confirmation
+│   │       ├── extras/                    # Additional credentials QR display
+│   │       ├── sign-contract/             # Contract signing QR display
+│   │       └── employee/                  # Credential issuance QR display
 │   ├── layout.tsx         # Root layout with providers
 │   └── page.tsx           # Homepage (redirects to /jobs)
 ├── components/            # Reusable UI components
@@ -228,7 +248,9 @@ src/
 │   │   ├── issuance/      # Credential issuance domain
 │   │   │   └── EmployeeCredentialService.ts  # Employee credential data builder
 │   │   ├── signing/       # Document signing domain
-│   │   │   └── DocumentSigningService.ts     # QES document signing workflows
+│   │   │   ├── DocumentSigningService.ts        # QES signing workflow orchestration
+│   │   │   ├── ContractPdfGeneratorService.ts   # Professional PDF generation
+│   │   │   └── DocumentHashService.ts           # SHA-256 hashing & verification
 │   │   ├── ApplicationService.ts  # Main application workflow orchestrator
 │   │   ├── JobService.ts          # Job posting operations
 │   │   ├── VerifierService.ts     # EUDI verifier API integration
@@ -240,7 +262,8 @@ src/
 │   │   ├── ApplicationRepository.ts         # Application lifecycle management
 │   │   ├── JobRepository.ts                 # Job CRUD operations
 │   │   ├── CredentialRepository.ts          # Issued credentials tracking
-│   │   └── VerifiedCredentialRepository.ts  # Verified credentials from wallet
+│   │   ├── VerifiedCredentialRepository.ts  # Verified credentials from wallet
+│   │   └── SignedDocumentRepository.ts      # Signed documents (optimized queries)
 │   ├── schemas/           # Input Validation (Zod)
 │   │   ├── application.ts  # Application creation, verification schemas
 │   │   └── job.ts         # Job validation schemas
@@ -257,9 +280,12 @@ src/
 └── theme.ts              # Material-UI theme configuration
 
 prisma/
-├── schema.prisma         # Database schema (JobPosting, Application, IssuedCredential, VerifiedCredential)
+├── schema.prisma         # Database schema (JobPosting, Application, IssuedCredential, VerifiedCredential, SignedDocument)
 ├── migrations/           # Database migration history
 └── seed.ts              # Database seeding script
+
+scripts/                  # Testing and utility scripts
+└── clear-signed-documents.ts      # Database cleanup for signed documents
 
 development/              # Development utilities and scripts
 
@@ -290,7 +316,9 @@ Services are now organized into domain-specific modules for better separation of
 - **Issuance Services** (`/services/issuance/`):
   - `EmployeeCredentialService`: Builds employee credential data for issuance
 - **Signing Services** (`/services/signing/`):
-  - `DocumentSigningService`: Handles document signing workflows with qualified electronic signatures (QES)
+  - `DocumentSigningService`: Orchestrates QES document signing workflows and prepares EUDI signing requests
+  - `ContractPdfGeneratorService`: Generates professional PDF employment contracts using pdf-lib
+  - `DocumentHashService`: Calculates and verifies SHA-256 document hashes for integrity
 - **Core Services**:
   - `ApplicationService`: Orchestrates the complete application workflow (creation → verification → issuance)
   - `VerifierService`: EUDI verifier API integration
@@ -306,6 +334,7 @@ Services are now organized into domain-specific modules for better separation of
   - `JobRepository`: Job posting CRUD operations
   - `CredentialRepository`: Issued credentials tracking (for wallet claims)
   - `VerifiedCredentialRepository`: Verified credentials from wallet (PID, Diploma, Seafarer)
+  - `SignedDocumentRepository`: Document signing sessions and signed contracts (optimized to avoid ArrayBuffer detachment)
 - **Schemas**: Zod-based input validation with decorator support
 - **Types**: EUDI-specific type definitions and JWT structures
 
@@ -352,10 +381,10 @@ Each verified credential is tracked independently with status: `PENDING → VERI
   - **EUDI Branding**: European Commission and EUDI Wallet logos
   - **Personal Data**: Shows all extracted information from PID
   - **Credential Status**: Visual chips showing verified PID credential
-  - **Additional Information Section**: If job requires diploma/seafarer certificate:
-    - User can choose to provide additional credentials
-    - "Provide Diploma", "Provide Seafarer Certificate", or "Provide Both" buttons
-    - Optional - user can skip and proceed to credential issuance
+  - **Additional Information Section**:
+    - **Option 1**: Provide additional credentials (diploma/seafarer certificates) - Optional
+    - **Option 2**: Sign employment contract with QES - Proceeds to contract signing
+    - **Option 3**: Skip to credential issuance - Direct to employee ID issuance
 
 ### 4. Additional Credentials Verification (Optional)
 
@@ -365,7 +394,26 @@ Each verified credential is tracked independently with status: `PENDING → VERI
 - **Polling**: Application polls extras verification endpoint every 1 second
 - **Return to Confirmation**: After successful verification, redirects back to confirmation page
 
-### 5. Application Receipt Issuance
+### 5. Contract Signing with QES (Optional)
+
+- **Sign Contract Page** (`/applications/[id]/sign-contract`): Document signing workflow
+  - **PDF Generation**: Professional employment contract generated with pdf-lib
+  - **Document Display**: QR code for EUDI Wallet to access signing request
+  - **Signing Process**:
+    1. Application initiates signing by calling `/api/applications/[id]/sign-document`
+    2. PDF contract generated with candidate and job details
+    3. SHA-256 hash calculated for document integrity
+    4. `SignedDocument` record created with state UUID and document content
+    5. JWT signing request created with document hash and location
+    6. User scans QR code with EUDI Wallet
+    7. Wallet retrieves document from `/api/documents/[state]`
+    8. Wallet signs document with qualified certificate
+    9. Signed document posted back to `/api/signed-document/[state]`
+  - **Real-Time Polling**: Status updates every 1.5 seconds via `/api/applications/signing-status/[id]`
+  - **Success Flow**: Redirects to confirmation page showing "Issue Employee ID" button
+  - **Error Handling**: Toast notification with retry option on signing failure
+
+### 6. Application Receipt Issuance
 
 - **Employee Page** (`/applications/[id]/employee`): Final step
 - **Credential Offer**: QR code for receiving employment credential
@@ -388,6 +436,30 @@ npm run lint         # Run ESLint
 npx prisma studio    # Open Prisma Studio (database GUI)
 npx prisma generate  # Regenerate Prisma client
 npx prisma db push   # Push schema changes to database
+
+# Testing & Utilities
+
+```
+
+### Testing Document Signing
+
+You can test the document signing endpoints manually with curl:
+
+```bash
+# Create signing session
+curl -X POST http://localhost:3000/api/applications/{id}/sign-document
+
+# Download PDF document
+curl http://localhost:3000/api/documents/{state} -o contract.pdf
+
+# Retrieve JWT signing request (debug)
+curl http://localhost:3000/api/request.jwt/{state}/debug
+
+# Check signing status
+curl http://localhost:3000/api/applications/signing-status/{id}
+
+# Clear all signed documents (cleanup utility)
+npx tsx scripts/clear-signed-documents.ts
 ```
 
 ### Code Quality
@@ -422,6 +494,15 @@ The application integrates with EUDI-compliant verifier and issuer services:
 - `GET /api/applications/verification-extras/{id}` - Poll extras verification status
 - `GET /api/applications/qr-extras/{id}` - Generate extras verification QR code
 
+#### Document Signing
+
+- `POST /api/applications/{id}/sign-document` - Initiate contract signing (generates PDF, creates signing session)
+- `GET /api/applications/qr-sign/{id}` - Generate document signing QR code
+- `GET /api/applications/signing-status/{id}` - Poll document signing status
+- `GET /api/request.jwt/{state}` - Retrieve JWT signing request for wallet
+- `GET /api/documents/{state}` - Serve PDF document for signing
+- `POST /api/signed-document/{state}` - Receive signed document from wallet
+
 #### Credential Issuance
 
 - `GET /api/applications/qr-issue/{id}` - Generate credential offer QR code
@@ -451,7 +532,16 @@ The application integrates with EUDI-compliant verifier and issuer services:
 
 - Tracks application lifecycle: `CREATED → VERIFIED → ISSUED`
 - Stores candidate personal data from PID verification
-- Relations: JobPosting, IssuedCredentials, VerifiedCredentials
+- Relations: JobPosting, IssuedCredentials, VerifiedCredentials, SignedDocuments
+
+#### SignedDocument
+
+- Tracks document signing sessions and signed contracts
+- Fields: documentHash (SHA-256), documentType, documentLabel, documentContent (Bytes)
+- Transaction tracking: state (UUID), nonce (replay protection)
+- Signature data: documentWithSignature (signed PDF), signatureObject, signerCertificate
+- Status: `PENDING → SIGNED` or `FAILED`
+- **Optimization**: Repository excludes large binary fields by default to prevent ArrayBuffer detachment issues
 
 #### VerifiedCredential
 

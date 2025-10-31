@@ -2,8 +2,17 @@
 
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
-import { Box, Button, Checkbox, FormControlLabel, Stack, Typography } from '@mui/material';
-import { useState } from 'react';
+import DrawIcon from '@mui/icons-material/Draw';
+import {
+	Box,
+	Button,
+	Checkbox,
+	FormControlLabel,
+	Stack,
+	Typography,
+	CircularProgress,
+} from '@mui/material';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 
 import LogoBox from './LogoBox';
@@ -11,9 +20,63 @@ import LogoBox from './LogoBox';
 export default function AdditionalInfoActions({ applicationId }: { applicationId: string }) {
 	const [diploma, setDiploma] = useState(false);
 	const [seafarer, setSeafarer] = useState(false);
-	const [busy, setBusy] = useState<'provide' | 'finalise' | null>(null);
+	const [busy, setBusy] = useState<'provide' | 'sign' | 'finalise' | null>(null);
+	const [contractStatus, setContractStatus] = useState<
+		'loading' | 'not_signed' | 'signing' | 'signed'
+	>('loading');
 
 	const disabled = !diploma && !seafarer;
+
+	// Check contract signing status on mount
+	useEffect(() => {
+		const checkContractStatus = async () => {
+			try {
+				const response = await fetch(`/api/applications/signing-status/${applicationId}`);
+				if (response.ok) {
+					const data = await response.json();
+					if (data.status === 'SIGNED') {
+						setContractStatus('signed');
+					} else if (data.status === 'PENDING') {
+						setContractStatus('signing');
+					} else {
+						setContractStatus('not_signed');
+					}
+				} else {
+					setContractStatus('not_signed');
+				}
+			} catch (error) {
+				console.error('Failed to check contract status:', error);
+				setContractStatus('not_signed');
+			}
+		};
+
+		checkContractStatus();
+	}, [applicationId]);
+
+	const signContract = async () => {
+		setBusy('sign');
+		try {
+			// Initiate document signing
+			const response = await fetch(`/api/applications/${applicationId}/sign-document`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+			});
+
+			if (!response.ok) {
+				const error = await response.json();
+				throw new Error(error.error || `HTTP ${response.status}`);
+			}
+
+			await response.json();
+
+			// Navigate to signing page
+			window.location.href = `/applications/${applicationId}/sign-contract`;
+		} catch (error) {
+			const message = error instanceof Error ? error.message : "Couldn't start contract signing.";
+			toast.error(message);
+			setBusy(null);
+		}
+	};
 
 	const provideExtrasCrossDevice = async () => {
 		setBusy('provide');
@@ -132,16 +195,43 @@ export default function AdditionalInfoActions({ applicationId }: { applicationId
 					OR
 				</Typography>
 
-				<Button
-					fullWidth
-					variant="contained"
-					color="secondary"
-					startIcon={<AccountBalanceWalletOutlinedIcon />}
-					disabled={busy !== null}
-					onClick={finalize}
-				>
-					{busy === 'finalise' ? 'Finalising…' : 'Finalise your job application'}
-				</Button>
+				{contractStatus === 'loading' ? (
+					<Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+						<CircularProgress size={24} />
+					</Box>
+				) : contractStatus === 'not_signed' ? (
+					<Button
+						fullWidth
+						variant="contained"
+						color="secondary"
+						startIcon={<DrawIcon />}
+						disabled={busy !== null}
+						onClick={signContract}
+					>
+						{busy === 'sign' ? 'Starting…' : 'Sign your contract'}
+					</Button>
+				) : contractStatus === 'signing' ? (
+					<Button
+						fullWidth
+						variant="outlined"
+						color="warning"
+						startIcon={<DrawIcon />}
+						onClick={() => (window.location.href = `/applications/${applicationId}/sign-contract`)}
+					>
+						Continue signing contract
+					</Button>
+				) : (
+					<Button
+						fullWidth
+						variant="contained"
+						color="success"
+						startIcon={<AccountBalanceWalletOutlinedIcon />}
+						disabled={busy !== null}
+						onClick={finalize}
+					>
+						{busy === 'finalise' ? 'Issuing…' : 'Issue Employee ID'}
+					</Button>
+				)}
 			</Stack>
 		</Box>
 	);

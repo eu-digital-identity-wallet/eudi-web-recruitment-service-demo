@@ -20,3 +20,5 @@ export * from './issuance/EmployeeCredentialService';
 
 // Domain: Document Signing
 export * from './signing/ContractSigningService';
+export * from './signing/ContractPdfGeneratorService';
+export * from './signing/DocumentHashService';
