@@ -20,23 +20,33 @@ graph TD
     M -->|Yes| N[Extract Personal Data]
     M -->|No| L
     N --> O[Display Confirmation Page]
-    O --> P{Job Requires Extra Credentials?}
-    P -->|Yes| Q[Display Request Additional Credentials]
-    P -->|No| S[Issue Application Receipt]
-    Q --> R{User Wants to Provide?}
-    R -->|Yes| T[Redirect to /extras Page]
-    R -->|No| S
-    T --> U[Display QR for Additional Credentials]
-    U --> V[User Scans with Wallet]
-    V --> W[Wallet Shares Diploma/Seafarer Cert]
-    W --> X[App Polls Extras Verification]
-    X --> Y{Extras Verified?}
-    Y -->|Yes| S
-    Y -->|No| X
-    S --> Z[Display Credential Offer QR]
-    Z --> AA[User Scans with Wallet]
-    AA --> AB[Wallet Fetches Credential from EUDI Issuer]
-    AB --> AC[End - Credential Stored in Wallet]
+    O --> P{User Wants to Provide Extras?}
+    P -->|Yes| Q[Redirect to /extras Page]
+    P -->|No| R[User Clicks Sign Contract]
+    Q --> T[Display QR for Additional Credentials]
+    T --> U[User Scans with Wallet]
+    U --> V[Wallet Shares Diploma/Seafarer Cert]
+    V --> W[App Polls Extras Verification]
+    W --> X{Extras Verified?}
+    X -->|Yes| O
+    X -->|No| W
+    R --> Y[Generate Employment Contract PDF]
+    Y --> Z[Create Signing Transaction]
+    Z --> AA[Display Signing QR Code]
+    AA --> AB[User Scans with Wallet]
+    AB --> AC[Wallet Requests Signing JWT]
+    AC --> AD[Wallet Downloads Document]
+    AD --> AE[User Signs with QES]
+    AE --> AF[Wallet Posts Signed Document]
+    AF --> AG[App Polls Signing Status]
+    AG --> AH{Document Signed?}
+    AH -->|Yes| AI[Enable Issue Employee ID]
+    AH -->|No| AG
+    AI --> AJ[User Clicks Issue Employee ID]
+    AJ --> AK[Display Credential Offer QR]
+    AK --> AL[User Scans with Wallet]
+    AL --> AM[Wallet Fetches Credential from EUDI Issuer]
+    AM --> AN[End - Credential Stored in Wallet]
 ```
 
 ## 2. PID Verification Flow (Detail)
@@ -133,7 +143,93 @@ sequenceDiagram
     end
 ```
 
-## 4. Credential Issuance Flow
+## 4. Document Signing Flow (QES)
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Browser
+    participant App as Application Service
+    participant SignedDocRepo as SignedDocumentRepository
+    participant PDFGen as ContractPdfGeneratorService
+    participant DocSigning as DocumentSigningService
+    participant JWTService
+    participant Wallet as EUDI Wallet
+
+    User->>Browser: Click "Sign Contract" on confirmation page
+    Browser->>App: POST /api/applications/{id}/sign-document
+
+    App->>PDFGen: Generate employment contract PDF
+    PDFGen-->>App: Return PDF bytes (Buffer)
+
+    App->>DocSigning: initDocumentSigning(applicationId, pdf, type, label)
+    DocSigning->>DocSigning: Generate state UUID and nonce
+    DocSigning->>DocSigning: Calculate SHA-256 document hash
+    DocSigning->>SignedDocRepo: Create SignedDocument (PENDING status)
+    SignedDocRepo-->>DocSigning: Return signed document record
+    DocSigning-->>App: Return state and documentHash
+
+    App-->>Browser: Return state
+    Browser->>Browser: Redirect to /applications/{id}/sign-contract
+    Browser->>App: GET /api/applications/qr-sign/{id}
+    App->>App: Build eudi-openid4vp:// URL with request_uri
+    App->>App: Generate QR code
+    App-->>Browser: Return QR code image
+
+    Browser->>Browser: Display QR code to user
+    User->>Wallet: Scan QR code with EUDI Wallet
+
+    Wallet->>App: GET /api/request.jwt/{state}
+    App->>DocSigning: prepareDocumentRetrievalRequest(state)
+    DocSigning->>SignedDocRepo: findByState(state)
+    SignedDocRepo-->>DocSigning: Return signed document record
+    DocSigning-->>App: Return DocumentRetrievalAuthRequest payload
+    App->>JWTService: Sign JWT with x5c certificate (ES256)
+    JWTService-->>App: Return signed JWT
+    App-->>Wallet: Return JWT (application/jwt)
+
+    Wallet->>Wallet: Validate JWT and extract payload
+    Wallet->>App: GET /api/documents/{state}
+    App->>DocSigning: getDocumentForSigning(state)
+    DocSigning->>SignedDocRepo: findByStateWithContent(state)
+    SignedDocRepo-->>DocSigning: Return document with content
+    DocSigning-->>App: Return PDF Buffer
+    App-->>Wallet: Return PDF (application/pdf)
+
+    Wallet->>Wallet: Verify document hash matches
+    Wallet->>User: Request QES authorization
+    User->>Wallet: Approve and sign with QES
+
+    Wallet->>Wallet: Apply qualified electronic signature
+    Wallet->>App: POST /api/signed-document/{state} (direct_post)
+    Note over Wallet,App: Form data includes:<br/>- documentWithSignature (base64)<br/>- signatureObject<br/>- state
+
+    App->>DocSigning: processSignedDocument(state, payload)
+    DocSigning->>SignedDocRepo: updateByState(state, {status: SIGNED, ...})
+    SignedDocRepo-->>DocSigning: Success
+    DocSigning-->>App: Return {success: true}
+    App-->>Wallet: Return success response
+
+    loop Poll Every 1 Second
+        Browser->>App: GET /api/applications/signing-status/{id}
+        App->>DocSigning: checkSigningStatus(applicationId)
+        DocSigning->>SignedDocRepo: findLatestByApplicationId(applicationId)
+        SignedDocRepo-->>DocSigning: Return signing status
+        DocSigning-->>App: Return {status, signedAt, errorCode}
+        App-->>Browser: Return status
+
+        alt Document Signed
+            Browser->>Browser: Show "Issue Employee ID" button
+            Browser->>Browser: Stop polling
+        else Still Pending
+            Browser->>Browser: Continue polling
+        end
+    end
+
+    Note over User,Wallet: Document signed with QES<br/>User can now issue employee credential
+```
+
+## 5. Credential Issuance Flow
 
 ```mermaid
 sequenceDiagram
@@ -174,7 +270,7 @@ sequenceDiagram
     Note over User,Wallet: Credential now available in wallet<br/>for future presentations
 ```
 
-## 5. Data Flow Architecture
+## 6. Data Flow Architecture
 
 ```mermaid
 graph LR
@@ -184,18 +280,25 @@ graph LR
         C[Application Page<br/>/applications/id]
         D[Confirmation Page<br/>/applications/id/confirmation]
         E[Extras Page<br/>/applications/id/extras]
-        F[Employee Page<br/>/applications/id/employee]
+        F[Sign Contract Page<br/>/applications/id/sign-contract]
+        G[Employee Page<br/>/applications/id/employee]
     end
 
     subgraph "API Routes"
-        G[POST /api/applications/create]
-        H[GET /api/applications/verification/id]
-        I[GET /api/applications/qr/id]
-        J[POST /api/applications/id/extras]
-        K[GET /api/applications/qr-extras/id]
-        L[GET /api/applications/verification-extras/id]
-        M[GET /api/applications/qr-issue/id]
-        N[POST /api/applications/id/issue-receipt]
+        H[POST /api/applications/create]
+        I[GET /api/applications/verification/id]
+        J[GET /api/applications/qr/id]
+        K[POST /api/applications/id/extras]
+        L[GET /api/applications/qr-extras/id]
+        M[GET /api/applications/verification-extras/id]
+        N[POST /api/applications/id/sign-document]
+        O[GET /api/applications/qr-sign/id]
+        P[GET /api/applications/signing-status/id]
+        Q[GET /api/request.jwt/state]
+        R[GET /api/documents/state]
+        S[POST /api/signed-document/state]
+        T[GET /api/applications/qr-issue/id]
+        U[POST /api/applications/id/issue-receipt]
     end
 
     subgraph "Services Layer"
@@ -220,7 +323,9 @@ graph LR
     end
 
     subgraph "Signing Services"
-        S1[DocumentSigningService]
+        SG1[DocumentSigningService]
+        SG2[ContractPdfGeneratorService]
+        SG3[DocumentHashService]
     end
 
     subgraph "Repositories"
@@ -228,6 +333,7 @@ graph LR
         W[JobRepository]
         X[CredentialRepository]
         Y[VerifiedCredentialRepository]
+        Z1[SignedDocumentRepository]
     end
 
     subgraph "External APIs"
@@ -239,24 +345,36 @@ graph LR
         AB[(PostgreSQL)]
     end
 
-    A --> B --> C --> D --> E --> F
-    B --> G
-    C --> H
+    A --> B --> C --> D --> E --> F --> G
+    B --> H
     C --> I
-    D --> J
-    E --> K
+    C --> J
+    D --> K
     E --> L
-    F --> M
-    D --> N
+    E --> M
+    F --> N
+    F --> O
+    F --> P
+    F --> Q
+    F --> R
+    F --> S
+    G --> T
+    D --> U
 
-    G --> O
     H --> O
     I --> O
     J --> O
     K --> O
     L --> O
-    M --> R
-    N --> R
+    M --> O
+    N --> SG1
+    O --> SG1
+    P --> SG1
+    Q --> SG1
+    R --> SG1
+    S --> SG1
+    T --> R
+    U --> R
 
     O --> Q
     O --> V
@@ -267,6 +385,10 @@ graph LR
     R --> I1
     R --> T
     R --> U
+    SG1 --> SG2
+    SG1 --> SG3
+    SG1 --> Z1
+    SG1 --> T
 
     V1 --> V2
     V1 --> V3
@@ -279,9 +401,10 @@ graph LR
     W --> AB
     X --> AB
     Y --> AB
+    Z1 --> AB
 ```
 
-## 6. Application State Machine
+## 7. Application State Machine
 
 ```mermaid
 stateDiagram-v2
@@ -291,7 +414,13 @@ stateDiagram-v2
     CREATED --> VERIFIED: PID verification successful
 
     VERIFIED --> VERIFIED: Request additional credentials
-    VERIFIED --> ISSUED: Application receipt issued
+    VERIFIED --> VERIFIED: User provides extras (optional)
+    VERIFIED --> SIGNING: User initiates contract signing
+
+    SIGNING --> SIGNING: Polling signing status
+    SIGNING --> SIGNED: Document signed with QES
+
+    SIGNED --> ISSUED: User issues employee credential
 
     ISSUED --> [*]: Process complete
 
@@ -305,6 +434,21 @@ stateDiagram-v2
         - Personal data extracted from PID
         - PID credential always verified
         - Can request diploma/seafarer cert
+        - Must sign contract before issuance
+    end note
+
+    note right of SIGNING
+        - SignedDocument created (PENDING)
+        - PDF contract generated
+        - Document hash calculated
+        - User scans QR with wallet
+        - Wallet signs with QES
+        - Polls every 1 second
+    end note
+
+    note right of SIGNED
+        - SignedDocument status: SIGNED
+        - Document with signature stored
         - Ready for credential issuance
     end note
 
@@ -315,13 +459,14 @@ stateDiagram-v2
     end note
 ```
 
-## 7. Database Schema Relationships
+## 8. Database Schema Relationships
 
 ```mermaid
 erDiagram
     JobPosting ||--o{ Application : "has many"
     Application ||--o{ IssuedCredential : "has many"
     Application ||--o{ VerifiedCredential : "has many"
+    Application ||--o{ SignedDocument : "has many"
 
     JobPosting {
         string id PK
@@ -371,9 +516,28 @@ erDiagram
         DateTime verifiedAt
         DateTime createdAt
     }
+
+    SignedDocument {
+        string id PK
+        string applicationId FK
+        string documentHash
+        string documentType
+        string documentLabel
+        Bytes documentContent
+        string state
+        string nonce
+        Bytes documentWithSignature
+        string signatureObject
+        string signatureQualifier
+        string signerCertificate
+        string status
+        string errorCode
+        DateTime signedAt
+        DateTime createdAt
+    }
 ```
 
-## 8. Component Architecture
+## 9. Component Architecture
 
 ```mermaid
 graph TD
@@ -383,61 +547,68 @@ graph TD
         C[ApplicationPage<br/>/applications/id]
         D[ConfirmationPage<br/>/applications/id/confirmation]
         E[ExtrasPage<br/>/applications/id/extras]
-        F[EmployeePage<br/>/applications/id/employee]
+        F[SignContractPage<br/>/applications/id/sign-contract]
+        G[EmployeePage<br/>/applications/id/employee]
     end
 
     subgraph "Organism Components"
-        G[AppLayout]
-        H[Header]
-        I[ReceiptIssuanceSection]
+        H[AppLayout]
+        I[Header]
+        J[ReceiptIssuanceSection]
     end
 
     subgraph "Atom Components"
-        J[JobIcon]
-        K[ApplySameDeviceButton]
-        L[ApplyCrossDeviceButton]
-        M[VerificationPulse]
-        N[AdditionalInfoActions]
-        O[LogoBanner]
-        P[LogoBox]
-        Q[ApplicationVerificationPoller]
-        R[ExtrasVerificationPoller]
-        S[CredentialOfferDisplay]
-        T[CredentialRequirementChips]
-        U[IssueReceiptButton]
+        K[JobIcon]
+        L[ApplySameDeviceButton]
+        M[ApplyCrossDeviceButton]
+        N[VerificationPulse]
+        O[AdditionalInfoActions]
+        P[LogoBanner]
+        Q[LogoBox]
+        R[ApplicationVerificationPoller]
+        S[ExtrasVerificationPoller]
+        T[SigningStatusPoller]
+        U[CredentialOfferDisplay]
+        V[CredentialRequirementChips]
+        W[IssueReceiptButton]
     end
 
-    A --> G
-    B --> G
-    C --> G
-    D --> G
-    E --> G
-    F --> G
-
+    A --> H
+    B --> H
+    C --> H
+    D --> H
+    E --> H
+    F --> H
     G --> H
 
-    B --> K
+    H --> I
+
     B --> L
-    C --> M
-    C --> O
-    C --> Q
-    D --> N
+    B --> M
+    C --> N
+    C --> P
+    C --> R
     D --> O
-    D --> T
-    E --> M
-    E --> O
-    E --> R
-    F --> I
-    F --> O
+    D --> P
+    D --> V
+    E --> N
+    E --> P
+    E --> S
+    F --> K
+    F --> N
+    F --> P
+    F --> T
+    G --> J
+    G --> P
 
-    I --> S
-    I --> U
+    J --> U
+    J --> W
 
-    O --> P
-    H --> O
+    P --> Q
+    I --> P
 ```
 
-## 9. CBOR Decoding Flow (VP Token Processing)
+## 10. CBOR Decoding Flow (VP Token Processing)
 
 ```mermaid
 graph TD
@@ -490,6 +661,34 @@ graph TD
    - Each credential has its own verification transaction and status
    - Verification happens on separate `/extras` page with new QR code
 
+### Document Signing Flow (QES)
+
+- Implements **Qualified Electronic Signature (QES)** using EUDI Wallet integration
+- **Required step** before employee credential issuance
+- **Contract Generation**:
+  - Generates professional PDF employment contract using pdf-lib
+  - Includes candidate information and job details
+  - Calculates SHA-256 hash of document for integrity verification
+- **Signing Process**:
+  - Creates unique signing transaction with state UUID and nonce
+  - Stores document content in **SignedDocument** table with PENDING status
+  - Generates QR code with `eudi-openid4vp://` URL containing request_uri
+  - Wallet retrieves signed JWT from `/api/request.jwt/{state}` endpoint
+  - Wallet downloads document from `/api/documents/{state}` endpoint
+  - Wallet verifies document hash matches
+  - User authorizes and signs with Qualified Electronic Signature
+  - Wallet posts signed document to `/api/signed-document/{state}` (direct_post mode)
+- **Status Tracking**:
+  - Browser polls `/api/applications/signing-status/{id}` every 1 second
+  - SignedDocument status: PENDING → SIGNED (or FAILED on error)
+  - Signed document with signature stored in database
+  - "Issue Employee ID" button enabled only after successful signing
+- **Security**:
+  - Uses JWT with x5c certificate chain (ES256 algorithm)
+  - Document hash verification ensures integrity
+  - Signature qualifier: `eu_eidas_qes` (eIDAS Qualified Electronic Signature)
+  - Hash algorithm: SHA-256 (OID: 2.16.840.1.101.3.4.2.1)
+
 ### Credential Issuance Flow
 
 - Stores application data locally but uses **external EUDI issuer** for actual credential creation
@@ -497,16 +696,18 @@ graph TD
 - Generates QR codes for wallet scanning
 - Credential offer points to `dev.issuer.eudiw.dev`
 - Stores issued credentials in **IssuedCredential** table with tracking
+- **Only available after** contract has been signed with QES
 
 ### Architecture Pattern
 
 - **Clean Architecture** with clear separation of concerns
 - **Dependency Injection** using TypeDI
-- **Repository Pattern** for data access with 4 repositories:
+- **Repository Pattern** for data access with 5 repositories:
   - ApplicationRepository
   - JobRepository
   - CredentialRepository (for issued credentials)
   - VerifiedCredentialRepository (for verified credentials from wallet)
+  - SignedDocumentRepository (for document signing workflows)
 - **Service Layer** organized by domain:
   - **Verification Services** (`/services/verification/`):
     - `CredentialVerificationService` - Orchestrates verification workflows
@@ -516,12 +717,14 @@ graph TD
   - **Issuance Services** (`/services/issuance/`):
     - `EmployeeCredentialService` - Builds employee credential data
   - **Signing Services** (`/services/signing/`):
-    - `DocumentSigningService` - Handles document signing workflows (QES)
+    - `DocumentSigningService` - Orchestrates document signing workflows (QES)
+    - `ContractPdfGeneratorService` - Generates professional PDF employment contracts
+    - `DocumentHashService` - Calculates SHA-256 document hashes
   - **Core Services**:
     - `ApplicationService` - Orchestrates application lifecycle
     - `VerifierService` - EUDI verifier API integration
     - `IssuerService` - EUDI issuer API integration
     - `DataDecoderService` - CBOR/VP token decoding
-    - `JWTService` - JWT signing
+    - `JWTService` - JWT signing with x5c certificates
     - `KeystoreService` - Keystore management
 - **Input Validation** using Zod schemas with decorators
