@@ -50,6 +50,7 @@ model Application {
   // Relations
   issuedCredentials     IssuedCredential[]
   verifiedCredentials   VerifiedCredential[]
+  signedDocuments       SignedDocument[]
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -101,4 +102,38 @@ model VerifiedCredential {
   @@index([applicationId])
   @@index([verifierTransactionId])
   @@index([applicationId, credentialType])
+}
+
+// Stores documents to be signed and their signing state
+model SignedDocument {
+  id                    String   @id @default(cuid())
+  applicationId         String
+  application           Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  // Document information
+  documentHash          String   // SHA-256 hash of the document
+  documentType          String   // e.g., "employment_contract"
+  documentLabel         String   // Display name, e.g., "Contract.pdf"
+  documentContent       Bytes?   // PDF bytes stored in database
+
+  // Transaction state for signing flow
+  state                 String   @unique  // UUID for this signing transaction
+  nonce                 String   // Random UUID for replay protection
+
+  // Signature data (populated after wallet callback)
+  documentWithSignature Bytes?   // Signed document bytes
+  signatureObject       String?  // Signature object as string (if provided separately)
+  signatureQualifier    String?  // e.g., "eu_eidas_qes"
+  signerCertificate     String?  // X.509 certificate from signer
+
+  // Status tracking
+  status                String   @default("PENDING") // PENDING, SIGNED, FAILED
+  errorCode             String?  // Error code if signing failed
+  signedAt              DateTime?
+
+  createdAt             DateTime @default(now())
+
+  @@index([applicationId])
+  @@index([state])
+  @@index([status])
 }
