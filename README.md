@@ -130,6 +130,22 @@ User → Next.js Page → API Route → Service → Repository → Database
                     (Verifier/Issuer)
 ```
 
+## Documentation
+
+For detailed architectural diagrams and flow visualizations, see:
+
+- **[Flowcharts & Diagrams](./docs/flowcharts.md)** - Complete visual documentation including:
+  - Overall application flow with all stages
+  - PID verification sequence diagram
+  - Additional credentials verification flow
+  - Document signing (QES) workflow with wallet integration
+  - Credential issuance flow
+  - Data flow architecture and service layer organization
+  - Application state machine
+  - Database schema relationships
+  - Component architecture
+  - CBOR decoding flow for VP tokens
+
 ## 🚀 Getting Started
 
 ### Prerequisites
