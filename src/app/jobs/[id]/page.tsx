@@ -150,12 +150,10 @@ export default async function JobDetailsPage({ params }: { params: Promise<{ id:
 												Optional Credentials:
 											</Typography>
 											<Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-												{(job.getRequiredCredentials() === 'DIPLOMA' ||
-													job.getRequiredCredentials() === 'BOTH') && (
+												{job.getRequiredCredentials() === 'DIPLOMA' && (
 													<Chip color="primary" variant="outlined" label="Diploma (optional)" />
 												)}
-												{(job.getRequiredCredentials() === 'SEAFARER' ||
-													job.getRequiredCredentials() === 'BOTH') && (
+												{job.getRequiredCredentials() === 'SEAFARER' && (
 													<Chip
 														color="primary"
 														variant="outlined"

@@ -40,14 +40,14 @@ export class Job {
 	 * Business Rule: Determines if this job requires diploma credentials
 	 */
 	requiresDiploma(): boolean {
-		return this.requiredCredentials === 'DIPLOMA' || this.requiredCredentials === 'BOTH';
+		return this.requiredCredentials === 'DIPLOMA';
 	}
 
 	/**
 	 * Business Rule: Determines if this job requires seafarer certificate
 	 */
 	requiresSeafarerCert(): boolean {
-		return this.requiredCredentials === 'SEAFARER' || this.requiredCredentials === 'BOTH';
+		return this.requiredCredentials === 'SEAFARER';
 	}
 
 	/**
@@ -60,13 +60,13 @@ export class Job {
 	/**
 	 * Business Rule: Validate if candidate meets job requirements
 	 */
-	candidateMeetsRequirements(hasDiploma: boolean, hasSeafarerCert: boolean): boolean {
+	candidateMeetsRequirements(
+		hasDiploma: boolean,
+		hasSeafarerCert: boolean,
+		hasTaxResidency: boolean,
+	): boolean {
 		if (!this.hasCredentialRequirements()) {
 			return true; // No requirements, always qualified
-		}
-
-		if (this.requiredCredentials === 'BOTH') {
-			return hasDiploma && hasSeafarerCert;
 		}
 
 		if (this.requiredCredentials === 'DIPLOMA') {
@@ -75,6 +75,10 @@ export class Job {
 
 		if (this.requiredCredentials === 'SEAFARER') {
 			return hasSeafarerCert;
+		}
+
+		if (this.requiredCredentials === 'TAXRESIDENCY') {
+			return hasTaxResidency;
 		}
 
 		return true;

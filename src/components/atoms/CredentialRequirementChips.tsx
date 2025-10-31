@@ -21,8 +21,8 @@ export default function CredentialRequirementChips({
 		return null;
 	}
 
-	const showDiploma = requiredCredentials === 'DIPLOMA' || requiredCredentials === 'BOTH';
-	const showSeafarer = requiredCredentials === 'SEAFARER' || requiredCredentials === 'BOTH';
+	const showDiploma = requiredCredentials === 'DIPLOMA';
+	const showSeafarer = requiredCredentials === 'SEAFARER';
 
 	return (
 		<Stack direction="row" spacing={1} alignItems="center">

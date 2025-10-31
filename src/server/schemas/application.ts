@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import {CredentialType} from "@prisma/client";
 
 export const applicationCreateSchema = z.object({
 	jobId: z.string().min(1),
@@ -14,7 +15,7 @@ export const applicationVerificationSchema = z.object({
 
 export const applicationExtrasSchema = z.object({
 	applicationId: z.string().min(1),
-	credentialType: z.enum(['DIPLOMA', 'SEAFARER', 'BOTH']),
+	credentialType: z.array(z.enum(CredentialType)),
 	sameDeviceFlow: z.boolean(),
 });
 

@@ -30,7 +30,10 @@ export default async function ApplicationExtrasPage({
 	const verifiedCredentials = await applicationService.getVerifiedCredentials(id);
 	const extrasCredentials = verifiedCredentials.filter(
 		(c) =>
-			(c.credentialType === 'DIPLOMA' || c.credentialType === 'SEAFARER') && c.status === 'PENDING',
+			(c.credentialType === 'DIPLOMA' ||
+				c.credentialType === 'SEAFARER' ||
+				c.credentialType === 'TAXRESIDENCY') &&
+			c.status === 'PENDING',
 	);
 
 	if (extrasCredentials.length === 0) return notFound();
@@ -38,15 +41,19 @@ export default async function ApplicationExtrasPage({
 	// Determine what was requested based on credentials
 	const hasDiploma = extrasCredentials.some((c) => c.credentialType === 'DIPLOMA');
 	const hasSeafarer = extrasCredentials.some((c) => c.credentialType === 'SEAFARER');
+	const hasTaxResidency = extrasCredentials.some((c) => c.credentialType === 'TAXRESIDENCY');
 
-	let extrasCredentialTypeLabel: string;
-	if (hasDiploma && hasSeafarer) {
-		extrasCredentialTypeLabel = 'Diploma & Seafarer Certificate';
-	} else if (hasDiploma) {
-		extrasCredentialTypeLabel = 'Diploma';
-	} else {
-		extrasCredentialTypeLabel = 'Seafarer Certificate';
+	const certificates: string[] = [];
+	if (hasDiploma) {
+		certificates.push('Diploma');
 	}
+	if (hasSeafarer) {
+		certificates.push('Seafarer');
+	}
+	if (hasTaxResidency) {
+		certificates.push('Tax Residency');
+	}
+	const extrasCredentialTypeLabel = certificates.join(' & ') + ' Certificate';
 
 	const title = app.job?.title ?? 'Application';
 
