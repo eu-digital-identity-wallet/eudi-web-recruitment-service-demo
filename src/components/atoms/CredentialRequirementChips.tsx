@@ -4,10 +4,8 @@ import DirectionsBoatIcon from '@mui/icons-material/DirectionsBoat';
 import SchoolIcon from '@mui/icons-material/School';
 import { Chip, Stack, Typography } from '@mui/material';
 
-import type { CredentialType } from '@/server/domain/types';
-
 interface CredentialRequirementChipsProps {
-	requiredCredentials: CredentialType;
+	requiredCredentials: string;
 	variant?: 'outlined' | 'filled';
 	size?: 'small' | 'medium';
 }

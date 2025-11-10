@@ -1,18 +1,41 @@
+/**
+ * Next.js Route: /applications/[id]/callback (OAuth Callback Handler - Same-Device Flow)
+ *
+ * Responsibilities:
+ * - Process OAuth callback from EUDI Wallet
+ * - Validate verification response
+ * - Redirect to appropriate next step
+ *
+ * Flow:
+ * 1. Receive response_code from query parameter (OAuth authorization code)
+ * 2. Process verification with response code
+ * 3. Success → redirect to /applications/[id]/finalise
+ * 4. Failure → redirect to /applications/[id]?error=verification_failed
+ *
+ * Query Parameters:
+ * - response_code: OAuth authorization code from verifier
+ *
+ * Note: This is only used for same-device flow. Cross-device flow polls directly without callback.
+ * Note: This route has no UI - it only processes the callback and redirects
+ */
 import 'server-only';
 import { notFound, redirect } from 'next/navigation';
 
-import { Container } from '@/server';
-import { ApplicationService } from '@/server/services/ApplicationService';
+import { Container } from '@/core';
+import { CheckVerificationStatusUseCase } from '@/core/application/usecases/CheckVerificationStatusUseCase';
+import { createLogger } from '@/core/infrastructure/logging/Logger';
 
-interface CallbackPageProps {
+const logger = createLogger('CallbackRoute');
+
+interface CallbackRouteProps {
 	params: Promise<{ id: string }>;
 	searchParams: Promise<{ response_code?: string }>;
 }
 
 export const dynamic = 'force-dynamic';
 
-export default async function CallbackPage({ params, searchParams }: CallbackPageProps) {
-	const applicationService = Container.get(ApplicationService);
+export default async function CallbackRoute({ params, searchParams }: CallbackRouteProps) {
+	const checkVerificationStatusUseCase = Container.get(CheckVerificationStatusUseCase);
 	const { id } = await params;
 	const { response_code } = await searchParams;
 
@@ -21,21 +44,18 @@ export default async function CallbackPage({ params, searchParams }: CallbackPag
 	}
 
 	try {
-		// Process the verification with the response code
-		const success = await applicationService.verificationStatus({
+		const success = await checkVerificationStatusUseCase.execute({
 			applicationId: id,
 			responseCode: response_code,
 		});
 
 		if (success) {
-			// Redirect to confirmation page on successful verification
-			redirect(`/applications/${id}/confirmation`);
+			redirect(`/applications/${id}/finalise`);
 		} else {
-			// Redirect to error page or show error
 			redirect(`/applications/${id}?error=verification_failed`);
 		}
 	} catch (error) {
-		// Re-throw redirect errors - they're not actual errors
+		// Re-throw redirect errors (Next.js uses these internally)
 		if (
 			error &&
 			typeof error === 'object' &&
@@ -45,7 +65,7 @@ export default async function CallbackPage({ params, searchParams }: CallbackPag
 		) {
 			throw error;
 		}
-		console.error('Error processing callback:', error);
+		logger.error('Error processing callback', error as Error);
 		redirect(`/applications/${id}?error=callback_error`);
 	}
 }

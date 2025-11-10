@@ -4,7 +4,7 @@ import { Box, Typography, Divider } from '@mui/material';
 import { useState } from 'react';
 
 import CredentialOfferDisplay from '@/components/atoms/CredentialOfferDisplay';
-import IssueReceiptButton from '@/components/atoms/IssueReceiptButton';
+import IssueEmployeeIdButton from '@/components/atoms/IssueEmployeeIdButton';
 
 interface ReceiptIssuanceSectionProps {
 	applicationId: string;
@@ -31,7 +31,7 @@ export default function ReceiptIssuanceSection({
 				Issue a verifiable application receipt credential to your EUDI wallet. This credential
 				proves that you have successfully submitted your application.
 			</Typography>
-			<IssueReceiptButton applicationId={applicationId} onSuccess={setOfferUrl} />
+			<IssueEmployeeIdButton applicationId={applicationId} onSuccess={setOfferUrl} />
 		</Box>
 	);
 }

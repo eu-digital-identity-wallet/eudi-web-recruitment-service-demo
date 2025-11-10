@@ -49,7 +49,7 @@ export default [
 		},
 		settings: {
 			'import/resolver': {
-				typescripts: true,
+				typescript: true,
 				node: true,
 			},
 		},
