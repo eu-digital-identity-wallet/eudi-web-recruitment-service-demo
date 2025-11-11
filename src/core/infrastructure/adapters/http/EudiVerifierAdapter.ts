@@ -38,6 +38,11 @@ export class EudiVerifierAdapter implements IVerifierPort {
 		});
 
 		this.logger.info('Payload for verifier', { payload: JSON.stringify(payload, null, 2) });
+		console.log('=== REDIRECT URI TEMPLATE DEBUG ===');
+		console.log('Template:', payload.wallet_response_redirect_uri_template);
+		console.log('Same device:', sameDeviceFlow);
+		console.log('Full payload:', JSON.stringify(payload, null, 2));
+		console.log('===================================');
 		const verifierUrl = `${env.VERIFIER_API_URL}/ui/presentations`;
 		this.logger.info('Making request to verifier URL', { verifierUrl });
 

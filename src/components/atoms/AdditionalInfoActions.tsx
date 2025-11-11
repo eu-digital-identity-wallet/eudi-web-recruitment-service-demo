@@ -149,9 +149,7 @@ export default function AdditionalInfoActions({
 								disabled={disabled || busy !== null}
 								onClick={provideExtrasSameDevice}
 							>
-								{busy === 'provide'
-									? 'Starting…'
-									: 'Provide additional qualifications (Same Device)'}
+								{busy === 'provide' ? 'Starting…' : 'Provide additional qualifications'}
 							</Button>
 						)}
 						{/* Only show QR Code button on desktop */}
