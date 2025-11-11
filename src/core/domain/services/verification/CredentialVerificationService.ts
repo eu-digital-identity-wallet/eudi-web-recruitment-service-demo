@@ -5,6 +5,7 @@ import { CredentialType } from '@/core/domain/value-objects';
 import { Inject } from '@/core/infrastructure/config/container';
 import { createLogger } from '@/core/infrastructure/logging/Logger';
 import { VpTokenRequest } from '@/core/shared/types/types/eudi';
+import { env } from '@env';
 
 import { DiplomaQueryService } from './queries/DiplomaQueryService';
 import { PidQueryService } from './queries/PidQueryService';
