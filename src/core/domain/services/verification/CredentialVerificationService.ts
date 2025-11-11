@@ -5,6 +5,7 @@ import { CredentialType } from '@/core/domain/value-objects';
 import { Inject } from '@/core/infrastructure/config/container';
 import { createLogger } from '@/core/infrastructure/logging/Logger';
 import { VpTokenRequest } from '@/core/shared/types/types/eudi';
+import { env } from '@env';
 
 import { DiplomaQueryService } from './queries/DiplomaQueryService';
 import { PidQueryService } from './queries/PidQueryService';
@@ -83,19 +84,9 @@ export class CredentialVerificationService {
 		};
 
 		// Add redirect URI for same-device flow
-		// NOTE: EUDI Verifier is rejecting redirect templates with InvalidWalletResponseTemplate error
-		// Disabling same-device flow redirect until verifier backend is fixed
-		// See: https://github.com/eu-digital-identity-wallet/eudi-srv-web-verifier-endpoint-23220-4-kt/issues/XXX
 		if (options.sameDeviceFlow) {
-			this.logger.warn(
-				'Same-device flow requested but redirect template disabled due to verifier bug',
-				{
-					applicationId: options.applicationId,
-				},
-			);
-			// Uncomment when verifier supports redirect templates:
-			// const base = env.NEXT_PUBLIC_APP_URI.replace(/\/+$/, '');
-			// payload.wallet_response_redirect_uri_template = `${base}/applications/${options.applicationId}/callback?response_code={response_code}`;
+			const base = env.NEXT_PUBLIC_APP_URI.replace(/\/+$/, '');
+			payload.wallet_response_redirect_uri_template = `${base}/applications/${options.applicationId}/callback?response_code={RESPONSE_CODE}`;
 		}
 
 		return payload;
