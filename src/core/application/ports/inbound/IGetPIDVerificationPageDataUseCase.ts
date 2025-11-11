@@ -8,23 +8,23 @@ export type PIDVerificationPageDTO = {
 	application: {
 		id: string;
 		status: string;
-		candidateFamilyName: string;
-		candidateGivenName: string;
-		candidateDateOfBirth: Date;
-		candidateNationality: string;
-		candidateEmail: string;
-		candidateMobilePhone: string | null;
+		candidateFamilyName?: string | null;
+		candidateGivenName?: string | null;
+		candidateDateOfBirth?: string | null;
+		candidateNationality?: string | null;
+		candidateEmail?: string | null;
+		candidateMobilePhone?: string | null;
 		updatedAt: Date;
 		createdAt: Date;
-		vacancy: {
+		vacancy?: {
 			title: string;
 			requiredCredentials: string[];
 		} | null;
 	};
-	pageAccessResult: {
-		allowed: boolean;
-		notFound?: boolean;
-	};
+	pageAccessResult:
+		| { allowed: true }
+		| { allowed: false; redirect?: string }
+		| { allowed: false; notFound: true };
 };
 
 export interface IGetPIDVerificationPageDataUseCase {

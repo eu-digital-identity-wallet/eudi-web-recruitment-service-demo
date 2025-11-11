@@ -42,7 +42,7 @@ export class PrismaVacancyRepositoryAdapter implements IVacancyRepository {
 				id: persistence.id!,
 				title: persistence.title!,
 				description: persistence.description!,
-				requiredCredentials: persistence.requiredCredentials as CredentialType,
+				requiredCredentials: persistence.requiredCredentials as CredentialType[],
 			},
 		});
 	}
@@ -54,7 +54,7 @@ export class PrismaVacancyRepositoryAdapter implements IVacancyRepository {
 		if (data.title !== undefined) prismaData.title = data.title;
 		if (data.description !== undefined) prismaData.description = data.description;
 		if (data.requiredCredentials !== undefined)
-			prismaData.requiredCredentials = data.requiredCredentials as CredentialType;
+			prismaData.requiredCredentials = data.requiredCredentials as CredentialType[];
 
 		return prisma.vacancy.update({
 			where: { id },

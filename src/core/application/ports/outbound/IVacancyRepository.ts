@@ -39,5 +39,5 @@ export interface IVacancyRepository {
 export interface UpdateVacancyData {
 	title?: string;
 	description?: string;
-	requiredCredentials?: string;
+	requiredCredentials?: string[];
 }

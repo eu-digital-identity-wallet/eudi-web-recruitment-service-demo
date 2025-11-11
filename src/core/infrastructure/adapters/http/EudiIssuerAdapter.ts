@@ -139,7 +139,7 @@ export class EudiIssuerAdapter implements IIssuerPort {
 				this.logger.error('Could not read error response', e as Error);
 			}
 
-			this.logger.error('Issuer API returned error', {
+			this.logger.error('Issuer API returned error', undefined, {
 				status: response.status,
 				statusText: response.statusText,
 				errorMessage,
