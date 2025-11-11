@@ -86,7 +86,7 @@ export class CredentialVerificationService {
 		// Add redirect URI for same-device flow
 		if (options.sameDeviceFlow) {
 			const base = env.NEXT_PUBLIC_APP_URI.replace(/\/+$/, '');
-			payload.wallet_response_redirect_uri_template = `${base}/applications/${options.applicationId}/callback?response_code={response_code}`;
+			payload.wallet_response_redirect_uri_template = `${base}/applications/${options.applicationId}/callback?response_code={RESPONSE_CODE}`;
 		}
 
 		return payload;
