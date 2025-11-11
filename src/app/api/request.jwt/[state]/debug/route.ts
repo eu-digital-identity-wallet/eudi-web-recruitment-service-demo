@@ -1,9 +1,12 @@
 // src/app/api/request.jwt/[state]/debug/route.ts
 import { NextResponse } from 'next/server';
 
-import { Container } from '@/server';
-import { JWTService } from '@/server/services/JWTService';
-import { DocumentSigningService } from '@/server/services/signing/ContractSigningService';
+import { Container } from '@/core';
+import { JWTService } from '@/core/domain/services/JWTService';
+import { DocumentSigningService } from '@/core/domain/services/signing/ContractSigningService';
+import { createLogger } from '@/core/infrastructure/logging/Logger';
+
+const logger = createLogger('RequestJWTDebugRoute');
 
 /**
  * GET /api/request.jwt/[state]/debug
@@ -66,7 +69,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ state: string 
 			},
 		);
 	} catch (error) {
-		console.error('[request.jwt/debug] Error:', error);
+		logger.error('Error generating JWT debug info', error as Error);
 		return NextResponse.json(
 			{
 				error: 'Failed to generate JWT',

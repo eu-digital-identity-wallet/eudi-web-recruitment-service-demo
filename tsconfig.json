@@ -1,6 +1,6 @@
 {
 	"compilerOptions": {
-		"target": "ES2017",
+		"target": "ES2022",
 		"lib": ["dom", "dom.iterable", "esnext"],
 		"allowJs": true,
 		"skipLibCheck": true,
@@ -25,7 +25,7 @@
 			"@/*": ["src/*"],
 			"@/app/*": ["src/app/*"],
 			"@/lib/*": ["src/lib/*"],
-			"@/server/*": ["src/server/*"],
+			"@/core/*": ["src/core/*"],
 			"@/components/*": ["src/components/*"],
 			"@/types/*": ["src/types/*"]
 		},

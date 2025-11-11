@@ -1,30 +1,35 @@
 /* prisma/seed.ts */
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, type CredentialType } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-async function ensureJob(params: { title: string; description: string; requiresDL?: boolean }) {
-	const existing = await prisma.jobPosting.findFirst({ where: { title: params.title } });
+async function ensureVacancy(params: {
+	title: string;
+	description: string;
+	requiredCredentials: CredentialType[];
+}) {
+	const existing = await prisma.vacancy.findFirst({ where: { title: params.title } });
 	if (existing) return existing;
 
-	return prisma.jobPosting.create({
+	return prisma.vacancy.create({
 		data: {
 			title: params.title,
 			description: params.description,
+			requiredCredentials: params.requiredCredentials,
 		},
 	});
 }
 
 async function main() {
 	console.log('🌱 Seeding database...');
-	await ensureJob({
+	await ensureVacancy({
 		title: 'Marine Superintendent',
-		requiresDL: false,
+		requiredCredentials: ['DIPLOMA', 'SEAFARER'], // Requires seafarer certification
 		description: [
-			'SeaFarer S.A., a well-established Shipping Company located in Malta, is seeking to employ a Marine Superintendent.',
+			'EUDI Demo Company, a well-established Shipping Company located in Malta, is seeking to employ a Marine Superintendent.',
 			'',
 			'Key responsibilities include:',
-			'• Vessels’ preparation for Rightship inspections',
+			"• Vessels' preparation for Rightship inspections",
 			'• Attending Rightship inspections onboard',
 			'• Cooperating with HSSQE Dept. on the nature of Rightship observations and/or deficiencies noted',
 			'• Internal Audits onboard',
@@ -36,11 +41,11 @@ async function main() {
 		].join('\n'),
 	});
 
-	await ensureJob({
+	await ensureVacancy({
 		title: 'Captain',
-		requiresDL: false,
+		requiredCredentials: ['DIPLOMA', 'SEAFARER'], // Requires both diploma and seafarer
 		description: [
-			'SeaFarer S.A. is looking for an experienced Captain to lead vessel operations and ensure safe, compliant voyages. 1',
+			'EUDI Demo Company is looking for an experienced Captain to lead vessel operations and ensure safe, compliant voyages.',
 			'',
 			'Key responsibilities include:',
 			'• Overall command of vessel navigation and safety management',
@@ -50,7 +55,7 @@ async function main() {
 			'• Oversight of cargo operations, stability and documentation',
 			'• Incident reporting and continuous improvement initiatives',
 			'',
-			'Diploma and Seafarer Certificate are optional and considered an asset.',
+			'Diploma and Seafarer Certificate are required.',
 			'All applications will be treated with confidentiality.',
 		].join('\n'),
 	});

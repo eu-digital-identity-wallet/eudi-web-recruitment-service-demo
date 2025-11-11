@@ -2,90 +2,60 @@
 
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
-import DrawIcon from '@mui/icons-material/Draw';
-import {
-	Box,
-	Button,
-	Checkbox,
-	FormControlLabel,
-	Stack,
-	Typography,
-	CircularProgress,
-} from '@mui/material';
+import QrCode2OutlinedIcon from '@mui/icons-material/QrCode2Outlined';
+import { Box, Button, Checkbox, FormControlLabel, Stack, Typography } from '@mui/material';
+import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { isMobile } from 'react-device-detect';
 import { toast } from 'react-toastify';
 
 import LogoBox from './LogoBox';
 
-export default function AdditionalInfoActions({ applicationId }: { applicationId: string }) {
+type VerifiedCredentialType = 'PID' | 'DIPLOMA' | 'SEAFARER' | 'TAXRESIDENCY';
+
+export default function AdditionalInfoActions({
+	applicationId,
+	verifiedCredentials = [],
+	requiredCredentials: _requiredCredentials = [],
+}: {
+	applicationId: string;
+	verifiedCredentials?: Array<{
+		credentialType: VerifiedCredentialType;
+		status: string;
+	}>;
+	requiredCredentials?: string[];
+}) {
+	const router = useRouter();
 	const [diploma, setDiploma] = useState(false);
 	const [seafarer, setSeafarer] = useState(false);
-	const [taxResidency, setTaxResidency] = useState(false);
-	const [busy, setBusy] = useState<'provide' | 'sign' | 'finalise' | null>(null);
-	const [contractStatus, setContractStatus] = useState<
-		'loading' | 'not_signed' | 'signing' | 'signed'
-	>('loading');
+	const [busy, setBusy] = useState<'provide' | null>(null);
+	const [mounted, setMounted] = useState(false);
 
-	const disabled = !diploma && !seafarer && !taxResidency;
-
-	// Check contract signing status on mount
 	useEffect(() => {
-		const checkContractStatus = async () => {
-			try {
-				const response = await fetch(`/api/applications/signing-status/${applicationId}`);
-				if (response.ok) {
-					const data = await response.json();
-					if (data.status === 'SIGNED') {
-						setContractStatus('signed');
-					} else if (data.status === 'PENDING') {
-						setContractStatus('signing');
-					} else {
-						setContractStatus('not_signed');
-					}
-				} else {
-					setContractStatus('not_signed');
-				}
-			} catch (error) {
-				console.error('Failed to check contract status:', error);
-				setContractStatus('not_signed');
-			}
-		};
+		setMounted(true);
+	}, []);
 
-		checkContractStatus();
-	}, [applicationId]);
+	// Check which credentials are already verified
+	const hasDiploma = verifiedCredentials.some(
+		(cred) => cred.credentialType === 'DIPLOMA' && cred.status === 'VERIFIED',
+	);
+	const hasSeafarer = verifiedCredentials.some(
+		(cred) => cred.credentialType === 'SEAFARER' && cred.status === 'VERIFIED',
+	);
 
-	const signContract = async () => {
-		setBusy('sign');
-		try {
-			// Initiate document signing
-			const response = await fetch(`/api/applications/${applicationId}/sign-document`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-			});
+	// Always allow submitting DIPLOMA and SEAFARER qualifications (they're always optional)
+	// Only hide this section if BOTH are already verified
+	const allQualificationsVerified = hasDiploma && hasSeafarer;
 
-			if (!response.ok) {
-				const error = await response.json();
-				throw new Error(error.error || `HTTP ${response.status}`);
-			}
-
-			await response.json();
-
-			// Navigate to signing page
-			window.location.href = `/applications/${applicationId}/sign-contract`;
-		} catch (error) {
-			const message = error instanceof Error ? error.message : "Couldn't start contract signing.";
-			toast.error(message);
-			setBusy(null);
-		}
-	};
+	const disabled = !diploma && !seafarer;
 
 	const provideExtrasCrossDevice = async () => {
 		setBusy('provide');
 		try {
-			const response = await fetch(`/api/applications/${applicationId}/extras`, {
+			const response = await fetch(`/api/applications/${applicationId}/verify-qualifications`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ diploma, seafarer, taxResidency, sameDeviceFlow: false }),
+				body: JSON.stringify({ diploma, seafarer, sameDeviceFlow: false }),
 			});
 
 			if (!response.ok) {
@@ -97,7 +67,7 @@ export default function AdditionalInfoActions({ applicationId }: { applicationId
 
 			// Navigate to dedicated QR extras page for cross-device flow
 			// The verification data is now stored in the database
-			window.location.href = `/applications/${applicationId}/extras`;
+			router.push(`/applications/${applicationId}/qualifications`);
 		} catch (error) {
 			const message =
 				error instanceof Error ? error.message : "Couldn't start the additional info flow.";
@@ -109,10 +79,10 @@ export default function AdditionalInfoActions({ applicationId }: { applicationId
 	const provideExtrasSameDevice = async () => {
 		setBusy('provide');
 		try {
-			const response = await fetch(`/api/applications/${applicationId}/extras`, {
+			const response = await fetch(`/api/applications/${applicationId}/verify-qualifications`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ diploma, seafarer, taxResidency, sameDeviceFlow: true }),
+				body: JSON.stringify({ diploma, seafarer, sameDeviceFlow: true }),
 			});
 
 			if (!response.ok) {
@@ -133,113 +103,73 @@ export default function AdditionalInfoActions({ applicationId }: { applicationId
 		}
 	};
 
-	const finalize = async () => {
-		setBusy('finalise');
-		try {
-			// Navigate to employee credential page
-			window.location.href = `/applications/${applicationId}/employee`;
-		} catch {
-			toast.error("Couldn't finalise the application.");
-			setBusy(null);
-		}
-	};
-
 	return (
 		<Box>
-			<Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
-				<AccountBalanceWalletIcon sx={{ color: 'primary.main' }} />
-				<Typography variant="h6">Additional information (optional)</Typography>
-			</Stack>
+			{/* Only show Additional Qualifications section if not all are verified */}
+			{!allQualificationsVerified && (
+				<>
+					<Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+						<AccountBalanceWalletIcon sx={{ color: 'primary.main' }} />
+						<Typography variant="h6">Additional Qualifications (optional)</Typography>
+					</Stack>
 
-			<LogoBox />
+					<LogoBox />
 
-			<Typography variant="body2" color="text.secondary" sx={{ mb: 2, textAlign: 'center' }}>
-				Use your European Digital Identity Wallet to provide additional credentials securely
-			</Typography>
+					<Typography variant="body2" color="text.secondary" sx={{ mb: 2, textAlign: 'center' }}>
+						Use your European Digital Identity Wallet to provide professional qualifications
+					</Typography>
 
-			<Stack direction="row" spacing={2} sx={{ mb: 3, flexWrap: 'wrap' }}>
-				<FormControlLabel
-					control={<Checkbox checked={diploma} onChange={(e) => setDiploma(e.target.checked)} />}
-					label="Diploma"
-				/>
-				<FormControlLabel
-					control={<Checkbox checked={seafarer} onChange={(e) => setSeafarer(e.target.checked)} />}
-					label="Seafarer Certificate"
-				/>
-				<FormControlLabel
-					control={
-						<Checkbox checked={taxResidency} onChange={(e) => setTaxResidency(e.target.checked)} />
-					}
-					label="Tax Residency"
-				/>
-			</Stack>
+					<Stack direction="row" spacing={2} sx={{ mb: 3, flexWrap: 'wrap' }}>
+						{!hasDiploma && (
+							<FormControlLabel
+								control={
+									<Checkbox checked={diploma} onChange={(e) => setDiploma(e.target.checked)} />
+								}
+								label="Diploma"
+							/>
+						)}
+						{!hasSeafarer && (
+							<FormControlLabel
+								control={
+									<Checkbox checked={seafarer} onChange={(e) => setSeafarer(e.target.checked)} />
+								}
+								label="Seafarer Certificate"
+							/>
+						)}
+					</Stack>
 
-			<Stack spacing={2} alignItems="center">
-				<Stack spacing={1} sx={{ width: '100%' }}>
-					<Button
-						fullWidth
-						variant="outlined"
-						color="primary"
-						startIcon={<AccountBalanceWalletOutlinedIcon />}
-						disabled={disabled || busy !== null}
-						onClick={provideExtrasCrossDevice}
-					>
-						{busy === 'provide' ? 'Starting…' : 'Provide additional information (Cross Device)'}
-					</Button>
-					<Button
-						fullWidth
-						variant="outlined"
-						color="primary"
-						startIcon={<AccountBalanceWalletOutlinedIcon />}
-						disabled={disabled || busy !== null}
-						onClick={provideExtrasSameDevice}
-					>
-						{busy === 'provide' ? 'Starting…' : 'Provide additional information (Same Device)'}
-					</Button>
-				</Stack>
-
-				<Typography variant="body2" color="text.secondary">
-					OR
-				</Typography>
-
-				{contractStatus === 'loading' ? (
-					<Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-						<CircularProgress size={24} />
-					</Box>
-				) : contractStatus === 'not_signed' ? (
-					<Button
-						fullWidth
-						variant="contained"
-						color="secondary"
-						startIcon={<DrawIcon />}
-						disabled={busy !== null}
-						onClick={signContract}
-					>
-						{busy === 'sign' ? 'Starting…' : 'Sign your contract'}
-					</Button>
-				) : contractStatus === 'signing' ? (
-					<Button
-						fullWidth
-						variant="outlined"
-						color="warning"
-						startIcon={<DrawIcon />}
-						onClick={() => (window.location.href = `/applications/${applicationId}/sign-contract`)}
-					>
-						Continue signing contract
-					</Button>
-				) : (
-					<Button
-						fullWidth
-						variant="contained"
-						color="success"
-						startIcon={<AccountBalanceWalletOutlinedIcon />}
-						disabled={busy !== null}
-						onClick={finalize}
-					>
-						{busy === 'finalise' ? 'Issuing…' : 'Issue Employee ID'}
-					</Button>
-				)}
-			</Stack>
+					<Stack spacing={1} sx={{ width: '100%' }}>
+						{/* Only show Same Device button on mobile */}
+						{mounted && isMobile && (
+							<Button
+								fullWidth
+								variant="outlined"
+								color="primary"
+								startIcon={<AccountBalanceWalletOutlinedIcon />}
+								disabled={disabled || busy !== null}
+								onClick={provideExtrasSameDevice}
+							>
+								{busy === 'provide'
+									? 'Starting…'
+									: 'Provide additional qualifications (Same Device)'}
+							</Button>
+						)}
+						{/* Only show QR Code button on desktop */}
+						{mounted && !isMobile && (
+							<Button
+								fullWidth
+								variant="outlined"
+								color="primary"
+								startIcon={<QrCode2OutlinedIcon />}
+								disabled={disabled || busy !== null}
+								onClick={provideExtrasCrossDevice}
+							>
+								{busy === 'provide' ? 'Starting…' : 'Provide additional qualifications (QR Code)'}
+							</Button>
+						)}
+					</Stack>
+				</>
+			)}
 		</Box>
 	);
 }

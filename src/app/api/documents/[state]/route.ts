@@ -1,8 +1,11 @@
 // src/app/api/documents/[state]/route.ts
 import { NextResponse } from 'next/server';
 
-import { Container } from '@/server';
-import { DocumentSigningService } from '@/server/services/signing/ContractSigningService';
+import { Container } from '@/core';
+import { GetDocumentForSigningUseCase } from '@/core/application/usecases/GetDocumentForSigningUseCase';
+import { createLogger } from '@/core/infrastructure/logging/Logger';
+
+const logger = createLogger('DocumentsRoute');
 
 /**
  * GET /api/documents/[state]
@@ -17,19 +20,13 @@ import { DocumentSigningService } from '@/server/services/signing/ContractSignin
 export async function GET(_req: Request, ctx: { params: Promise<{ state: string }> }) {
 	try {
 		const { state } = await ctx.params;
-		const documentSigningService = Container.get(DocumentSigningService);
+		const getDocumentForSigningUseCase = Container.get(GetDocumentForSigningUseCase);
 
-		// Get document content
-		const documentContent = await documentSigningService.getDocumentForSigning(state);
+		// Get document content via use case
+		const documentContent = await getDocumentForSigningUseCase.execute(state);
 
 		if (!documentContent) {
 			return NextResponse.json({ error: 'Document not found' }, { status: 404 });
-		}
-
-		// Validate buffer before trying to send
-		if (!Buffer.isBuffer(documentContent) || documentContent.length === 0) {
-			console.error('[documents] Invalid document content');
-			return NextResponse.json({ error: 'Document content is invalid' }, { status: 500 });
 		}
 
 		// Return document as PDF
@@ -45,7 +42,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ state: string 
 			},
 		});
 	} catch (error) {
-		console.error('[documents] Error:', error);
+		logger.error('Error retrieving document', error as Error);
 
 		// Check if it's a buffer-related error
 		if (

@@ -1,9 +1,11 @@
 // src/app/api/request.jwt/[state]/route.ts
 import { NextResponse } from 'next/server';
 
-import { Container } from '@/server';
-import { JWTService } from '@/server/services/JWTService';
-import { DocumentSigningService } from '@/server/services/signing/ContractSigningService';
+import { Container } from '@/core';
+import { GenerateDocumentJWTUseCase } from '@/core/application/usecases/GenerateDocumentJWTUseCase';
+import { createLogger } from '@/core/infrastructure/logging/Logger';
+
+const logger = createLogger('RequestJWTRoute');
 
 /**
  * GET /api/request.jwt/[state]
@@ -19,15 +21,10 @@ import { DocumentSigningService } from '@/server/services/signing/ContractSignin
 export async function GET(_req: Request, ctx: { params: Promise<{ state: string }> }) {
 	try {
 		const { state } = await ctx.params;
+		const generateDocumentJWTUseCase = Container.get(GenerateDocumentJWTUseCase);
 
-		const documentSigningService = Container.get(DocumentSigningService);
-		const jwtService = Container.get(JWTService);
-
-		// Prepare the document retrieval request payload
-		const payload = await documentSigningService.prepareDocumentRetrievalRequest(state);
-
-		// Sign the JWT with x5c certificate
-		const signedJwt = await jwtService.sign(payload);
+		// Generate signed JWT via use case
+		const signedJwt = await generateDocumentJWTUseCase.execute(state);
 
 		// Return JWT as plain text (application/jwt is not standard, so use text/plain)
 		return new NextResponse(signedJwt, {
@@ -39,7 +36,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ state: string 
 			},
 		});
 	} catch (error) {
-		console.error('[request.jwt] Error:', error);
+		logger.error('Error generating JWT', error as Error);
 		return NextResponse.json({ error: 'Failed to generate JWT' }, { status: 500 });
 	}
 }
