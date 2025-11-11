@@ -5,7 +5,7 @@
 	"type": "module",
 	"author": "Paraskevas (Paris) SMYRLAKIS",
 	"scripts": {
-		"dev": "next dev --turbopack",
+		"dev": "next dev --turbopack -H 0.0.0.0",
 		"build": "next build --turbopack",
 		"start": "next start",
 		"format": "prettier --write .",
