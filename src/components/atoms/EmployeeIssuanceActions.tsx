@@ -98,7 +98,7 @@ export default function EmployeeIssuanceActions({ applicationId }: { application
 						disabled={busy}
 						onClick={() => issueEmployeeCredential('same-device')}
 					>
-						{busy ? 'Issuing…' : 'Issue Employee ID (Same Device)'}
+						{busy ? 'Issuing…' : 'Issue Employee ID'}
 					</Button>
 				)}
 				{/* Only show QR Code button on desktop */}
