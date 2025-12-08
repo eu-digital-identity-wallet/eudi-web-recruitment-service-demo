@@ -38,7 +38,7 @@ export default function ApplyCrossDeviceButton({ jobId }: { jobId: string }) {
 			color="primary"
 			startIcon={!pending ? <QrCode2OutlinedIcon /> : undefined}
 		>
-			{pending ? <CircularProgress size={20} /> : 'Apply (cross device)'}
+			{pending ? <CircularProgress size={20} /> : 'Apply'}
 		</Button>
 	);
 }

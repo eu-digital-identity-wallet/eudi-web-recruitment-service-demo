@@ -53,7 +53,7 @@ export default function ApplySameDeviceButton({ jobId }: { jobId: string }) {
 			color="secondary" // your yellow/orange
 			startIcon={!pending ? <AccountBalanceWalletOutlinedIcon /> : undefined}
 		>
-			{pending ? <CircularProgress size={20} /> : 'Apply (same device)'}
+			{pending ? <CircularProgress size={20} /> : 'Apply'}
 		</Button>
 	);
 }

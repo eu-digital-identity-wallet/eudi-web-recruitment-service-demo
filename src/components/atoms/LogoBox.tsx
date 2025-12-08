@@ -8,32 +8,32 @@ export default function LogoBox() {
 				mb: 2,
 				bgcolor: 'white',
 				p: 2,
-				pb: '25px',
 				border: 1,
 				borderColor: 'divider',
 				display: 'flex',
 				flexDirection: 'row',
-				gap: 3,
+				gap: 2,
 				alignItems: 'center',
 				justifyContent: 'center',
+				overflow: 'hidden',
 			}}
 		>
 			<Image
 				src="/logo-european-commission.svg"
 				alt="European Commission"
-				width={180}
-				height={80}
+				width={160}
+				height={70}
 				priority
-				style={{ objectFit: 'contain', marginLeft: '-16px' }}
+				style={{ objectFit: 'contain' }}
 			/>
-			<Box sx={{ width: '2px', height: '26px', bgcolor: 'primary.main', marginTop: '20px' }} />
+			<Box sx={{ width: '2px', height: '40px', bgcolor: 'primary.main' }} />
 			<Image
 				src="/eudi-wallet-official.svg"
 				alt="EU Digital Identity Wallet"
-				width={140}
-				height={50}
+				width={130}
+				height={45}
 				priority
-				style={{ objectFit: 'contain', marginTop: '33px' }}
+				style={{ objectFit: 'contain' }}
 			/>
 		</Box>
 	);

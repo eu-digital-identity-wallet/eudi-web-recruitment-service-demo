@@ -111,7 +111,7 @@ export default function TaxResidencyActions({ applicationId }: { applicationId: 
 						disabled={busy !== null}
 						onClick={provideTaxResidencySameDevice}
 					>
-						{busy === 'same' ? 'Starting…' : 'Provide Tax Residency (Same Device)'}
+						{busy === 'same' ? 'Starting…' : 'Provide Tax Residency'}
 					</Button>
 				)}
 				{/* Only show QR Code button on desktop */}

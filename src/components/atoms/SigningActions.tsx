@@ -147,7 +147,7 @@ export default function SigningActions({
 						disabled={busy}
 						onClick={startCrossDevice}
 					>
-						Sign contract (Cross Device)
+						Sign contract
 					</Button>
 				)}
 				{/* Only show Same Device button on mobile */}
@@ -160,7 +160,7 @@ export default function SigningActions({
 						disabled={busy}
 						onClick={startSameDevice}
 					>
-						{busy ? 'Starting…' : 'Sign contract (Same Device)'}
+						{busy ? 'Starting…' : 'Sign contract'}
 					</Button>
 				)}
 			</Stack>

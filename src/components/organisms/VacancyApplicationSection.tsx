@@ -2,6 +2,8 @@
 
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import { Box, Chip, Stack, Typography } from '@mui/material';
+import { useState, useEffect } from 'react';
+import { isMobile } from 'react-device-detect';
 
 import ApplyCrossDeviceButton from '@/components/atoms/ApplyCrossDeviceButton';
 import ApplySameDeviceButton from '@/components/atoms/ApplySameDeviceButton';
@@ -20,6 +22,12 @@ export default function VacancyApplicationSection({
 	vacancyId,
 	requiredCredentials,
 }: VacancyApplicationSectionProps) {
+	const [mounted, setMounted] = useState(false);
+
+	useEffect(() => {
+		setMounted(true);
+	}, []);
+
 	// Filter out basic credentials (NONE, PID)
 	const optionalCredentials = requiredCredentials.filter(
 		(cred) => cred !== 'NONE' && cred !== 'PID',
@@ -64,8 +72,10 @@ export default function VacancyApplicationSection({
 			)}
 
 			<Stack spacing={2}>
-				<ApplySameDeviceButton jobId={vacancyId} />
-				<ApplyCrossDeviceButton jobId={vacancyId} />
+				{/* Only show Same Device button on mobile */}
+				{mounted && isMobile && <ApplySameDeviceButton jobId={vacancyId} />}
+				{/* Only show Cross Device button on desktop */}
+				{mounted && !isMobile && <ApplyCrossDeviceButton jobId={vacancyId} />}
 			</Stack>
 		</Box>
 	);
